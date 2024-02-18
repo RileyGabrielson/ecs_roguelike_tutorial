@@ -1,4 +1,4 @@
-use super::{Rect, MAP_HEIGHT, MAP_WIDTH};
+use super::{Rect, MAP_HEIGHT, MAP_WIDTH, MAX_X};
 use rltk::{Algorithm2D, BaseMap, Point, RandomNumberGenerator, Rltk, RGB};
 use specs::prelude::*;
 use std::cmp::{max, min};
@@ -212,7 +212,7 @@ pub fn draw_map(ecs: &World, ctx: &mut Rltk) {
 
         // Move the coordinates
         x += 1;
-        if x > 79 {
+        if x > MAX_X {
             x = 0;
             y += 1;
         }
