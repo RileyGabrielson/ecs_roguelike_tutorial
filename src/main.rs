@@ -2,7 +2,9 @@ use rltk::{GameState, Point, Rltk, RGB};
 use specs::prelude::*;
 
 mod components;
-pub use components::{Monster, Name, Player, Position, Renderable, Viewshed};
+pub use components::{
+    BlocksTile, CombatStats, Monster, Name, Player, Position, Renderable, Viewshed,
+};
 mod map;
 pub use map::*;
 mod player;
@@ -13,6 +15,8 @@ mod visibility_system;
 use visibility_system::VisibilitySystem;
 mod monster_ai_system;
 use monster_ai_system::MonsterAI;
+mod map_indexing_system;
+use map_indexing_system::MapIndexingSystem;
 
 pub const MIN_X: i32 = 0;
 pub const MAX_X: i32 = 79;
@@ -35,11 +39,14 @@ struct State {
 
 impl State {
     fn run_systems(&mut self) {
-        let mut vis = VisibilitySystem {};
-        vis.run_now(&self.entity_component_system);
+        let mut visibility = VisibilitySystem {};
+        visibility.run_now(&self.entity_component_system);
 
-        let mut mob = MonsterAI {};
-        mob.run_now(&self.entity_component_system);
+        let mut monster_ai = MonsterAI {};
+        monster_ai.run_now(&self.entity_component_system);
+
+        let mut map_indexing = MapIndexingSystem {};
+        map_indexing.run_now(&self.entity_component_system);
 
         self.entity_component_system.maintain();
     }
@@ -89,6 +96,8 @@ fn main() -> rltk::BError {
     gs.entity_component_system.register::<Viewshed>();
     gs.entity_component_system.register::<Monster>();
     gs.entity_component_system.register::<Name>();
+    gs.entity_component_system.register::<BlocksTile>();
+    gs.entity_component_system.register::<CombatStats>();
 
     let map = Map::new_map_rooms_and_corridors();
     let mut rng = rltk::RandomNumberGenerator::new();
@@ -123,6 +132,13 @@ fn main() -> rltk::BError {
                 dirty: true,
             })
             .with(Monster {})
+            .with(CombatStats {
+                max_hp: 16,
+                hp: 16,
+                defense: 1,
+                power: 4,
+            })
+            .with(BlocksTile {})
             .with(Name {
                 name: format!("{} #{}", name, i),
             })
@@ -146,6 +162,12 @@ fn main() -> rltk::BError {
             bg: RGB::named(rltk::BLACK),
         })
         .with(Player {})
+        .with(CombatStats {
+            max_hp: 30,
+            hp: 30,
+            defense: 2,
+            power: 5,
+        })
         .with(Name {
             name: "Player".to_string(),
         })
