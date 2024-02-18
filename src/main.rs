@@ -3,7 +3,8 @@ use specs::prelude::*;
 
 mod components;
 pub use components::{
-    BlocksTile, CombatStats, Monster, Name, Player, Position, Renderable, Viewshed,
+    BlocksTile, CombatStats, Monster, Name, Player, Position, Renderable, SufferDamage, Viewshed,
+    WantsToMelee,
 };
 mod map;
 pub use map::*;
@@ -17,6 +18,10 @@ mod monster_ai_system;
 use monster_ai_system::MonsterAI;
 mod map_indexing_system;
 use map_indexing_system::MapIndexingSystem;
+mod melee_combat_system;
+use melee_combat_system::MeleeCombatSystem;
+mod damage_system;
+use damage_system::DamageSystem;
 
 pub const MIN_X: i32 = 0;
 pub const MAX_X: i32 = 79;
@@ -28,13 +33,14 @@ pub const MAP_HEIGHT: i32 = MAX_Y + 1;
 
 #[derive(PartialEq, Copy, Clone)]
 pub enum RunState {
-    Paused,
-    Running,
+    AwaitingInput,
+    PreRun,
+    PlayerTurn,
+    MonsterTurn,
 }
 
 struct State {
     entity_component_system: World,
-    run_state: RunState,
 }
 
 impl State {
@@ -48,6 +54,12 @@ impl State {
         let mut map_indexing = MapIndexingSystem {};
         map_indexing.run_now(&self.entity_component_system);
 
+        let mut melee_combat = MeleeCombatSystem {};
+        melee_combat.run_now(&self.entity_component_system);
+
+        let mut damage = DamageSystem {};
+        damage.run_now(&self.entity_component_system);
+
         self.entity_component_system.maintain();
     }
 }
@@ -55,14 +67,32 @@ impl State {
 impl GameState for State {
     fn tick(&mut self, context: &mut Rltk) {
         context.cls();
+        let mut run_state = *self.entity_component_system.fetch::<RunState>();
 
-        if self.run_state == RunState::Running {
-            self.run_systems();
-            self.run_state = RunState::Paused;
-        } else {
-            self.run_state = player_input(self, context);
+        match run_state {
+            RunState::PreRun => {
+                self.run_systems();
+                run_state = RunState::AwaitingInput;
+            }
+            RunState::AwaitingInput => {
+                run_state = player_input(self, context);
+            }
+            RunState::PlayerTurn => {
+                self.run_systems();
+                run_state = RunState::MonsterTurn;
+            }
+            RunState::MonsterTurn => {
+                self.run_systems();
+                run_state = RunState::AwaitingInput;
+            }
         }
 
+        {
+            let mut runwriter = self.entity_component_system.write_resource::<RunState>();
+            *runwriter = run_state;
+        }
+
+        damage_system::delete_the_dead(&mut self.entity_component_system);
         draw_map(&self.entity_component_system, context);
 
         let positions = self.entity_component_system.read_storage::<Position>();
@@ -87,7 +117,6 @@ fn main() -> rltk::BError {
         .build()?;
     let mut gs = State {
         entity_component_system: World::new(),
-        run_state: RunState::Running,
     };
 
     gs.entity_component_system.register::<Position>();
@@ -98,6 +127,8 @@ fn main() -> rltk::BError {
     gs.entity_component_system.register::<Name>();
     gs.entity_component_system.register::<BlocksTile>();
     gs.entity_component_system.register::<CombatStats>();
+    gs.entity_component_system.register::<WantsToMelee>();
+    gs.entity_component_system.register::<SufferDamage>();
 
     let map = Map::new_map_rooms_and_corridors();
     let mut rng = rltk::RandomNumberGenerator::new();
@@ -146,11 +177,8 @@ fn main() -> rltk::BError {
     }
 
     let (player_x, player_y) = map.rooms[0].center();
-    gs.entity_component_system.insert(map);
-    gs.entity_component_system
-        .insert(Point::new(player_x, player_y));
-
-    gs.entity_component_system
+    let player_entity = gs
+        .entity_component_system
         .create_entity()
         .with(Position {
             x: player_x,
@@ -177,6 +205,12 @@ fn main() -> rltk::BError {
             dirty: true,
         })
         .build();
+
+    gs.entity_component_system
+        .insert(Point::new(player_x, player_y));
+    gs.entity_component_system.insert(map);
+    gs.entity_component_system.insert(player_entity);
+    gs.entity_component_system.insert(RunState::PreRun);
 
     rltk::main_loop(context, gs)
 }
