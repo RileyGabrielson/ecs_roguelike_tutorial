@@ -6,6 +6,55 @@ use rltk::{Point, Rltk, VirtualKeyCode};
 use specs::prelude::*;
 use std::cmp::{max, min};
 
+pub fn player_input(gs: &mut State, ctx: &mut Rltk) -> RunState {
+    // Player movement
+    match ctx.key {
+        None => return RunState::AwaitingInput, // Nothing happened
+        Some(key) => match key {
+            VirtualKeyCode::G => get_item(&mut gs.entity_component_system),
+            VirtualKeyCode::I => return RunState::ShowInventory,
+            VirtualKeyCode::D => return RunState::ShowDropItem,
+
+            // Cardinal Directions
+            VirtualKeyCode::Left | VirtualKeyCode::Numpad4 | VirtualKeyCode::H => {
+                try_move_player(-1, 0, &mut gs.entity_component_system)
+            }
+
+            VirtualKeyCode::Right | VirtualKeyCode::Numpad6 | VirtualKeyCode::L => {
+                try_move_player(1, 0, &mut gs.entity_component_system)
+            }
+
+            VirtualKeyCode::Up | VirtualKeyCode::Numpad8 | VirtualKeyCode::K => {
+                try_move_player(0, -1, &mut gs.entity_component_system)
+            }
+
+            VirtualKeyCode::Down | VirtualKeyCode::Numpad2 | VirtualKeyCode::J => {
+                try_move_player(0, 1, &mut gs.entity_component_system)
+            }
+
+            // Diagonals
+            VirtualKeyCode::Numpad9 | VirtualKeyCode::U => {
+                try_move_player(1, -1, &mut gs.entity_component_system)
+            }
+
+            VirtualKeyCode::Numpad7 | VirtualKeyCode::Y => {
+                try_move_player(-1, -1, &mut gs.entity_component_system)
+            }
+
+            VirtualKeyCode::Numpad3 | VirtualKeyCode::N => {
+                try_move_player(1, 1, &mut gs.entity_component_system)
+            }
+
+            VirtualKeyCode::Numpad1 | VirtualKeyCode::B => {
+                try_move_player(-1, 1, &mut gs.entity_component_system)
+            }
+
+            _ => return RunState::AwaitingInput,
+        },
+    }
+    RunState::PlayerTurn
+}
+
 pub fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
     let mut positions = ecs.write_storage::<Position>();
     let mut players = ecs.write_storage::<Player>();
@@ -50,53 +99,6 @@ pub fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
             ppos.y = pos.y;
         }
     }
-}
-
-pub fn player_input(gs: &mut State, ctx: &mut Rltk) -> RunState {
-    // Player movement
-    match ctx.key {
-        None => return RunState::AwaitingInput, // Nothing happened
-        Some(key) => match key {
-            VirtualKeyCode::G => get_item(&mut gs.entity_component_system),
-
-            // Cardinal Directions
-            VirtualKeyCode::Left | VirtualKeyCode::Numpad4 | VirtualKeyCode::H => {
-                try_move_player(-1, 0, &mut gs.entity_component_system)
-            }
-
-            VirtualKeyCode::Right | VirtualKeyCode::Numpad6 | VirtualKeyCode::L => {
-                try_move_player(1, 0, &mut gs.entity_component_system)
-            }
-
-            VirtualKeyCode::Up | VirtualKeyCode::Numpad8 | VirtualKeyCode::K => {
-                try_move_player(0, -1, &mut gs.entity_component_system)
-            }
-
-            VirtualKeyCode::Down | VirtualKeyCode::Numpad2 | VirtualKeyCode::J => {
-                try_move_player(0, 1, &mut gs.entity_component_system)
-            }
-
-            // Diagonals
-            VirtualKeyCode::Numpad9 | VirtualKeyCode::U => {
-                try_move_player(1, -1, &mut gs.entity_component_system)
-            }
-
-            VirtualKeyCode::Numpad7 | VirtualKeyCode::Y => {
-                try_move_player(-1, -1, &mut gs.entity_component_system)
-            }
-
-            VirtualKeyCode::Numpad3 | VirtualKeyCode::N => {
-                try_move_player(1, 1, &mut gs.entity_component_system)
-            }
-
-            VirtualKeyCode::Numpad1 | VirtualKeyCode::B => {
-                try_move_player(-1, 1, &mut gs.entity_component_system)
-            }
-
-            _ => return RunState::AwaitingInput,
-        },
-    }
-    RunState::PlayerTurn
 }
 
 fn get_item(ecs: &mut World) {

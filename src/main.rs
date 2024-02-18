@@ -4,7 +4,8 @@ use specs::prelude::*;
 mod components;
 pub use components::{
     BlocksTile, CombatStats, InInventory, Item, Monster, Name, Player, Position, Potion,
-    Renderable, SufferDamage, Viewshed, WantsToMelee, WantsToPickupItem,
+    Renderable, SufferDamage, Viewshed, WantsToDrinkPotion, WantsToDropItem, WantsToMelee,
+    WantsToPickupItem,
 };
 mod map;
 pub use map::*;
@@ -26,7 +27,7 @@ mod game_log;
 pub use game_log::GameLog;
 mod gui;
 mod inventory_system;
-use inventory_system::ItemCollectionSystem;
+use inventory_system::{ItemCollectionSystem, ItemDropSystem, PotionUseSystem};
 mod spawner;
 
 pub const MAP_WIDTH: i32 = 80;
@@ -43,6 +44,8 @@ pub enum RunState {
     PreRun,
     PlayerTurn,
     MonsterTurn,
+    ShowInventory,
+    ShowDropItem,
 }
 
 struct State {
@@ -69,13 +72,42 @@ impl State {
         let mut item_collection = ItemCollectionSystem {};
         item_collection.run_now(&self.entity_component_system);
 
+        let mut item_drop = ItemDropSystem {};
+        item_drop.run_now(&self.entity_component_system);
+
+        let mut drink_potions = PotionUseSystem {};
+        drink_potions.run_now(&self.entity_component_system);
+
         self.entity_component_system.maintain();
     }
 }
 
 impl GameState for State {
     fn tick(&mut self, context: &mut Rltk) {
-        context.cls();
+        {
+            context.cls();
+            draw_map(&self.entity_component_system, context);
+
+            let positions = self.entity_component_system.read_storage::<Position>();
+            let renderables = self.entity_component_system.read_storage::<Renderable>();
+            let map = self.entity_component_system.fetch::<Map>();
+
+            let mut layers: Vec<Vec<(&Position, &Renderable)>> = vec![Vec::new(); 10 as usize];
+
+            for (position, render) in (&positions, &renderables).join() {
+                layers[render.layer as usize].push((position, render));
+            }
+
+            for layer in layers {
+                for (position, render) in layer {
+                    let index = map.xy_idx(position.x, position.y);
+                    if map.visible_tiles[index] {
+                        context.set(position.x, position.y, render.fg, render.bg, render.glyph);
+                    }
+                }
+            }
+        }
+
         let mut run_state = *self.entity_component_system.fetch::<RunState>();
 
         match run_state {
@@ -94,6 +126,52 @@ impl GameState for State {
                 self.run_systems();
                 run_state = RunState::AwaitingInput;
             }
+            RunState::ShowDropItem => {
+                let (menu_state, entity_result) =
+                    gui::drop_item_menu(&mut self.entity_component_system, context);
+                match menu_state {
+                    gui::ItemMenuResult::Cancel => run_state = RunState::AwaitingInput,
+                    gui::ItemMenuResult::NoResponse => {}
+                    gui::ItemMenuResult::Selected => {
+                        let item_entity = entity_result.unwrap();
+                        let mut intent = self
+                            .entity_component_system
+                            .write_storage::<WantsToDropItem>();
+                        intent
+                            .insert(
+                                *self.entity_component_system.fetch::<Entity>(),
+                                WantsToDropItem { item: item_entity },
+                            )
+                            .expect("Unable to insert intent");
+
+                        run_state = RunState::PlayerTurn;
+                    }
+                }
+            }
+            RunState::ShowInventory => {
+                let (menu_state, entity_result) =
+                    gui::show_inventory(&mut self.entity_component_system, context);
+                match menu_state {
+                    gui::ItemMenuResult::Cancel => run_state = RunState::AwaitingInput,
+                    gui::ItemMenuResult::NoResponse => {}
+                    gui::ItemMenuResult::Selected => {
+                        let item_entity = entity_result.unwrap();
+                        let mut intent = self
+                            .entity_component_system
+                            .write_storage::<WantsToDrinkPotion>();
+                        intent
+                            .insert(
+                                *self.entity_component_system.fetch::<Entity>(),
+                                WantsToDrinkPotion {
+                                    potion: item_entity,
+                                },
+                            )
+                            .expect("Unable to insert intent");
+
+                        run_state = RunState::PlayerTurn;
+                    }
+                }
+            }
         }
 
         {
@@ -102,26 +180,6 @@ impl GameState for State {
         }
 
         damage_system::delete_the_dead(&mut self.entity_component_system);
-        draw_map(&self.entity_component_system, context);
-
-        let positions = self.entity_component_system.read_storage::<Position>();
-        let renderables = self.entity_component_system.read_storage::<Renderable>();
-        let map = self.entity_component_system.fetch::<Map>();
-
-        let mut layers: Vec<Vec<(&Position, &Renderable)>> = vec![Vec::new(); 10 as usize];
-
-        for (position, render) in (&positions, &renderables).join() {
-            layers[render.layer as usize].push((position, render));
-        }
-
-        for layer in layers {
-            for (position, render) in layer {
-                let index = map.xy_idx(position.x, position.y);
-                if map.visible_tiles[index] {
-                    context.set(position.x, position.y, render.fg, render.bg, render.glyph);
-                }
-            }
-        }
 
         gui::draw_ui(&self.entity_component_system, context);
     }
@@ -155,6 +213,8 @@ fn main() -> rltk::BError {
     gs.entity_component_system.register::<Potion>();
     gs.entity_component_system.register::<InInventory>();
     gs.entity_component_system.register::<WantsToPickupItem>();
+    gs.entity_component_system.register::<WantsToDrinkPotion>();
+    gs.entity_component_system.register::<WantsToDropItem>();
 
     let map = Map::new_map_rooms_and_corridors();
     let (player_x, player_y) = map.rooms[0].center();
