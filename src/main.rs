@@ -3,8 +3,8 @@ use specs::prelude::*;
 
 mod components;
 pub use components::{
-    BlocksTile, CombatStats, Monster, Name, Player, Position, Renderable, SufferDamage, Viewshed,
-    WantsToMelee,
+    BlocksTile, CombatStats, InInventory, Item, Monster, Name, Player, Position, Potion,
+    Renderable, SufferDamage, Viewshed, WantsToMelee, WantsToPickupItem,
 };
 mod map;
 pub use map::*;
@@ -25,6 +25,8 @@ use damage_system::DamageSystem;
 mod game_log;
 pub use game_log::GameLog;
 mod gui;
+mod inventory_system;
+use inventory_system::ItemCollectionSystem;
 mod spawner;
 
 pub const MAP_WIDTH: i32 = 80;
@@ -63,6 +65,9 @@ impl State {
 
         let mut damage = DamageSystem {};
         damage.run_now(&self.entity_component_system);
+
+        let mut item_collection = ItemCollectionSystem {};
+        item_collection.run_now(&self.entity_component_system);
 
         self.entity_component_system.maintain();
     }
@@ -103,10 +108,18 @@ impl GameState for State {
         let renderables = self.entity_component_system.read_storage::<Renderable>();
         let map = self.entity_component_system.fetch::<Map>();
 
+        let mut layers: Vec<Vec<(&Position, &Renderable)>> = vec![Vec::new(); 10 as usize];
+
         for (position, render) in (&positions, &renderables).join() {
-            let index = map.xy_idx(position.x, position.y);
-            if map.visible_tiles[index] {
-                context.set(position.x, position.y, render.fg, render.bg, render.glyph);
+            layers[render.layer as usize].push((position, render));
+        }
+
+        for layer in layers {
+            for (position, render) in layer {
+                let index = map.xy_idx(position.x, position.y);
+                if map.visible_tiles[index] {
+                    context.set(position.x, position.y, render.fg, render.bg, render.glyph);
+                }
             }
         }
 
@@ -138,6 +151,11 @@ fn main() -> rltk::BError {
     gs.entity_component_system.register::<WantsToMelee>();
     gs.entity_component_system.register::<SufferDamage>();
 
+    gs.entity_component_system.register::<Item>();
+    gs.entity_component_system.register::<Potion>();
+    gs.entity_component_system.register::<InInventory>();
+    gs.entity_component_system.register::<WantsToPickupItem>();
+
     let map = Map::new_map_rooms_and_corridors();
     let (player_x, player_y) = map.rooms[0].center();
     let player_entity = spawner::player(&mut gs.entity_component_system, player_x, player_y);
@@ -149,12 +167,11 @@ fn main() -> rltk::BError {
     gs.entity_component_system.insert(player_entity);
     gs.entity_component_system.insert(RunState::PreRun);
     gs.entity_component_system.insert(game_log::GameLog {
-        entries: vec!["Welcome to Rusty Roguelike".to_string()],
+        entries: vec!["Welcome to Riley's Roguelike".to_string()],
     });
 
     for room in map.rooms.iter().skip(1) {
-        let (x, y) = room.center();
-        spawner::random_monster(&mut gs.entity_component_system, x, y);
+        spawner::spawn_room(&mut gs.entity_component_system, room);
     }
 
     gs.entity_component_system.insert(map);

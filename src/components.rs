@@ -55,6 +55,7 @@ pub struct Position {
 
 #[derive(Component)]
 pub struct Renderable {
+    pub layer: i32,
     pub glyph: rltk::FontCharType,
     pub fg: RGB,
     pub bg: RGB,
@@ -65,4 +66,23 @@ pub struct Viewshed {
     pub visible_tiles: Vec<rltk::Point>,
     pub range: i32,
     pub dirty: bool,
+}
+
+#[derive(Component, Debug)]
+pub struct Item {}
+
+#[derive(Component, Debug)]
+pub struct Potion {
+    pub heal_amount: i32,
+}
+
+#[derive(Component, Debug)]
+pub struct InInventory {
+    pub owner: Entity,
+}
+
+#[derive(Component, Debug, Clone)]
+pub struct WantsToPickupItem {
+    pub collected_by: Entity,
+    pub item: Entity,
 }
