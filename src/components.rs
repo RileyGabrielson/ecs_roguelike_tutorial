@@ -1,20 +1,23 @@
-use rltk::Point;
-use rltk::RGB;
+use rltk::{Point, RGB};
+use serde::{Deserialize, Serialize};
+#[allow(deprecated)]
+use specs::error::NoError;
 use specs::prelude::*;
+use specs::saveload::{ConvertSaveload, Marker};
 use specs_derive::*;
 
-#[derive(Component, Debug)]
+#[derive(Component, Debug, Serialize, Deserialize, Clone)]
 pub struct Player {}
 
-#[derive(Component, Debug)]
+#[derive(Component, Debug, ConvertSaveload, Clone)]
 pub struct Name {
     pub name: String,
 }
 
-#[derive(Component, Debug)]
+#[derive(Component, Debug, Clone, Serialize, Deserialize)]
 pub struct BlocksTile {}
 
-#[derive(Component, Debug)]
+#[derive(Component, Debug, ConvertSaveload, Clone)]
 pub struct CombatStats {
     pub max_hp: i32,
     pub hp: i32,
@@ -22,12 +25,12 @@ pub struct CombatStats {
     pub power: i32,
 }
 
-#[derive(Component, Debug, Clone)]
+#[derive(Component, Debug, Clone, ConvertSaveload)]
 pub struct WantsToMelee {
     pub target: Entity,
 }
 
-#[derive(Component, Debug)]
+#[derive(Component, Debug, ConvertSaveload, Clone)]
 pub struct SufferDamage {
     pub amount: Vec<i32>,
 }
@@ -45,16 +48,16 @@ impl SufferDamage {
     }
 }
 
-#[derive(Component, Debug)]
+#[derive(Component, Debug, Serialize, Deserialize, Clone)]
 pub struct Monster {}
 
-#[derive(Component)]
+#[derive(Component, ConvertSaveload, Clone)]
 pub struct Position {
     pub x: i32,
     pub y: i32,
 }
 
-#[derive(Component)]
+#[derive(Component, ConvertSaveload, Clone)]
 pub struct Renderable {
     pub layer: i32,
     pub glyph: rltk::FontCharType,
@@ -62,62 +65,70 @@ pub struct Renderable {
     pub bg: RGB,
 }
 
-#[derive(Component)]
+#[derive(Component, ConvertSaveload, Clone)]
 pub struct Viewshed {
     pub visible_tiles: Vec<rltk::Point>,
     pub range: i32,
     pub dirty: bool,
 }
 
-#[derive(Component, Debug)]
+#[derive(Component, Debug, Serialize, Deserialize, Clone)]
 pub struct Item {}
 
-#[derive(Component, Debug)]
+#[derive(Component, Debug, ConvertSaveload, Clone)]
 pub struct ProvidesHealing {
     pub heal_amount: i32,
 }
 
-#[derive(Component, Debug)]
+#[derive(Component, Debug, ConvertSaveload, Clone)]
 pub struct InInventory {
     pub owner: Entity,
 }
 
-#[derive(Component, Debug, Clone)]
+#[derive(Component, Debug, Clone, ConvertSaveload)]
 pub struct WantsToPickupItem {
     pub collected_by: Entity,
     pub item: Entity,
 }
 
-#[derive(Component, Debug)]
+#[derive(Component, Debug, ConvertSaveload, Clone)]
 pub struct WantsToUseItem {
     pub item: Entity,
     pub target: Option<Point>,
 }
 
-#[derive(Component, Debug)]
+#[derive(Component, Debug, ConvertSaveload, Clone)]
 pub struct WantsToDropItem {
     pub item: Entity,
 }
 
-#[derive(Component, Debug)]
+#[derive(Component, Debug, Serialize, Deserialize, Clone)]
 pub struct Consumable {}
 
-#[derive(Component, Debug)]
+#[derive(Component, Debug, ConvertSaveload, Clone)]
 pub struct Ranged {
     pub range: i32,
 }
 
-#[derive(Component, Debug)]
+#[derive(Component, Debug, ConvertSaveload, Clone)]
 pub struct InflictsDamage {
     pub damage: i32,
 }
 
-#[derive(Component, Debug)]
+#[derive(Component, Debug, ConvertSaveload, Clone)]
 pub struct AreaOfEffect {
     pub radius: i32,
 }
 
-#[derive(Component, Debug)]
+#[derive(Component, Debug, ConvertSaveload, Clone)]
 pub struct Confusion {
     pub turns: i32,
+}
+
+pub struct SerializeMe;
+
+// Special component that exists to help serialize the game data
+#[derive(Component, Serialize, Deserialize, Clone)]
+pub struct SerializationHelper {
+    pub map: super::map::Map,
 }

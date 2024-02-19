@@ -1,11 +1,15 @@
 use rltk::{GameState, Point, Rltk};
 use specs::prelude::*;
+use specs::saveload::{SimpleMarker, SimpleMarkerAllocator};
+
+extern crate serde;
 
 mod components;
 pub use components::{
     AreaOfEffect, BlocksTile, CombatStats, Confusion, Consumable, InInventory, InflictsDamage,
-    Item, Monster, Name, Player, Position, ProvidesHealing, Ranged, Renderable, SufferDamage,
-    Viewshed, WantsToDropItem, WantsToMelee, WantsToPickupItem, WantsToUseItem,
+    Item, Monster, Name, Player, Position, ProvidesHealing, Ranged, Renderable,
+    SerializationHelper, SerializeMe, SufferDamage, Viewshed, WantsToDropItem, WantsToMelee,
+    WantsToPickupItem, WantsToUseItem,
 };
 mod map;
 pub use map::*;
@@ -29,10 +33,12 @@ mod gui;
 mod inventory_system;
 use inventory_system::{ItemCollectionSystem, ItemDropSystem, ItemUseSystem};
 mod menu;
+mod saveload_system;
 mod spawner;
 
 pub const MAP_WIDTH: i32 = 80;
 pub const MAP_HEIGHT: i32 = 43;
+pub const MAP_COUNT: i32 = MAP_WIDTH * MAP_HEIGHT;
 
 pub const MIN_X: i32 = 0;
 pub const MAX_X: i32 = MAP_WIDTH - 1;
@@ -54,6 +60,7 @@ pub enum RunState {
     MainMenu {
         menu_selection: menu::MainMenuSelection,
     },
+    SaveGame,
 }
 
 struct State {
@@ -123,29 +130,6 @@ impl GameState for State {
             }
         }
 
-        // {
-        //     draw_map(&self.entity_component_system, context);
-
-        //     let positions = self.entity_component_system.read_storage::<Position>();
-        //     let renderables = self.entity_component_system.read_storage::<Renderable>();
-        //     let map = self.entity_component_system.fetch::<Map>();
-
-        //     let mut layers: Vec<Vec<(&Position, &Renderable)>> = vec![Vec::new(); 10 as usize];
-
-        //     for (position, render) in (&positions, &renderables).join() {
-        //         layers[render.layer as usize].push((position, render));
-        //     }
-
-        //     for layer in layers {
-        //         for (position, render) in layer {
-        //             let index = map.xy_idx(position.x, position.y);
-        //             if map.visible_tiles[index] {
-        //                 context.set(position.x, position.y, render.fg, render.bg, render.glyph);
-        //             }
-        //         }
-        //     }
-        // }
-
         match run_state {
             RunState::MainMenu { .. } => {
                 let result = menu::main_menu(&mut self.entity_component_system, context);
@@ -157,12 +141,22 @@ impl GameState for State {
                     }
                     menu::MainMenuResult::Selected { selected } => match selected {
                         menu::MainMenuSelection::NewGame => run_state = RunState::PreRun,
-                        menu::MainMenuSelection::LoadGame => run_state = RunState::PreRun,
+                        menu::MainMenuSelection::LoadGame => {
+                            saveload_system::load_game(&mut self.entity_component_system);
+                            run_state = RunState::AwaitingInput;
+                            saveload_system::delete_save();
+                        }
                         menu::MainMenuSelection::Quit => {
                             ::std::process::exit(0);
                         }
                     },
                 }
+            }
+            RunState::SaveGame => {
+                saveload_system::save_game(&mut self.entity_component_system);
+                run_state = RunState::MainMenu {
+                    menu_selection: menu::MainMenuSelection::LoadGame,
+                };
             }
             RunState::PreRun => {
                 self.run_systems();
@@ -280,6 +274,9 @@ fn main() -> rltk::BError {
         entity_component_system: World::new(),
     };
 
+    gs.entity_component_system
+        .insert(SimpleMarkerAllocator::<SerializeMe>::new());
+
     gs.entity_component_system.register::<Position>();
     gs.entity_component_system.register::<Renderable>();
     gs.entity_component_system.register::<Player>();
@@ -302,6 +299,9 @@ fn main() -> rltk::BError {
     gs.entity_component_system.register::<InflictsDamage>();
     gs.entity_component_system.register::<AreaOfEffect>();
     gs.entity_component_system.register::<Confusion>();
+    gs.entity_component_system
+        .register::<SimpleMarker<SerializeMe>>();
+    gs.entity_component_system.register::<SerializationHelper>();
 
     let map = Map::new_map_rooms_and_corridors();
     let (player_x, player_y) = map.rooms[0].center();
