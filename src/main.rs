@@ -3,9 +3,9 @@ use specs::prelude::*;
 
 mod components;
 pub use components::{
-    BlocksTile, CombatStats, InInventory, Item, Monster, Name, Player, Position, Potion,
-    Renderable, SufferDamage, Viewshed, WantsToDrinkPotion, WantsToDropItem, WantsToMelee,
-    WantsToPickupItem,
+    AreaOfEffect, BlocksTile, CombatStats, Confusion, Consumable, InInventory, InflictsDamage,
+    Item, Monster, Name, Player, Position, ProvidesHealing, Ranged, Renderable, SufferDamage,
+    Viewshed, WantsToDropItem, WantsToMelee, WantsToPickupItem, WantsToUseItem,
 };
 mod map;
 pub use map::*;
@@ -27,7 +27,8 @@ mod game_log;
 pub use game_log::GameLog;
 mod gui;
 mod inventory_system;
-use inventory_system::{ItemCollectionSystem, ItemDropSystem, PotionUseSystem};
+use inventory_system::{ItemCollectionSystem, ItemDropSystem, ItemUseSystem};
+mod menu;
 mod spawner;
 
 pub const MAP_WIDTH: i32 = 80;
@@ -46,6 +47,13 @@ pub enum RunState {
     MonsterTurn,
     ShowInventory,
     ShowDropItem,
+    ShowTargeting {
+        range: i32,
+        item: Entity,
+    },
+    MainMenu {
+        menu_selection: menu::MainMenuSelection,
+    },
 }
 
 struct State {
@@ -75,7 +83,7 @@ impl State {
         let mut item_drop = ItemDropSystem {};
         item_drop.run_now(&self.entity_component_system);
 
-        let mut drink_potions = PotionUseSystem {};
+        let mut drink_potions = ItemUseSystem {};
         drink_potions.run_now(&self.entity_component_system);
 
         self.entity_component_system.maintain();
@@ -84,33 +92,78 @@ impl State {
 
 impl GameState for State {
     fn tick(&mut self, context: &mut Rltk) {
-        {
-            context.cls();
-            draw_map(&self.entity_component_system, context);
+        let mut run_state = *self.entity_component_system.fetch::<RunState>();
+        context.cls();
 
-            let positions = self.entity_component_system.read_storage::<Position>();
-            let renderables = self.entity_component_system.read_storage::<Renderable>();
-            let map = self.entity_component_system.fetch::<Map>();
+        match run_state {
+            RunState::MainMenu { .. } => {}
+            _ => {
+                draw_map(&self.entity_component_system, context);
 
-            let mut layers: Vec<Vec<(&Position, &Renderable)>> = vec![Vec::new(); 10 as usize];
+                {
+                    let positions = self.entity_component_system.read_storage::<Position>();
+                    let renderables = self.entity_component_system.read_storage::<Renderable>();
+                    let map = self.entity_component_system.fetch::<Map>();
 
-            for (position, render) in (&positions, &renderables).join() {
-                layers[render.layer as usize].push((position, render));
-            }
-
-            for layer in layers {
-                for (position, render) in layer {
-                    let index = map.xy_idx(position.x, position.y);
-                    if map.visible_tiles[index] {
-                        context.set(position.x, position.y, render.fg, render.bg, render.glyph);
+                    let mut data = (&positions, &renderables).join().collect::<Vec<_>>();
+                    data.sort_by(|&a, &b| b.1.layer.cmp(&a.1.layer));
+                    for (pos, render) in data.iter() {
+                        let idx = map.xy_idx(pos.x, pos.y);
+                        if map.visible_tiles[idx] {
+                            context.set(pos.x, pos.y, render.fg, render.bg, render.glyph)
+                        }
                     }
+
+                    gui::draw_ui(&self.entity_component_system, context);
+                }
+                {
+                    damage_system::delete_the_dead(&mut self.entity_component_system);
+                    gui::draw_ui(&self.entity_component_system, context);
                 }
             }
         }
 
-        let mut run_state = *self.entity_component_system.fetch::<RunState>();
+        // {
+        //     draw_map(&self.entity_component_system, context);
+
+        //     let positions = self.entity_component_system.read_storage::<Position>();
+        //     let renderables = self.entity_component_system.read_storage::<Renderable>();
+        //     let map = self.entity_component_system.fetch::<Map>();
+
+        //     let mut layers: Vec<Vec<(&Position, &Renderable)>> = vec![Vec::new(); 10 as usize];
+
+        //     for (position, render) in (&positions, &renderables).join() {
+        //         layers[render.layer as usize].push((position, render));
+        //     }
+
+        //     for layer in layers {
+        //         for (position, render) in layer {
+        //             let index = map.xy_idx(position.x, position.y);
+        //             if map.visible_tiles[index] {
+        //                 context.set(position.x, position.y, render.fg, render.bg, render.glyph);
+        //             }
+        //         }
+        //     }
+        // }
 
         match run_state {
+            RunState::MainMenu { .. } => {
+                let result = menu::main_menu(&mut self.entity_component_system, context);
+                match result {
+                    menu::MainMenuResult::NoSelection { selected } => {
+                        run_state = RunState::MainMenu {
+                            menu_selection: selected,
+                        }
+                    }
+                    menu::MainMenuResult::Selected { selected } => match selected {
+                        menu::MainMenuSelection::NewGame => run_state = RunState::PreRun,
+                        menu::MainMenuSelection::LoadGame => run_state = RunState::PreRun,
+                        menu::MainMenuSelection::Quit => {
+                            ::std::process::exit(0);
+                        }
+                    },
+                }
+            }
             RunState::PreRun => {
                 self.run_systems();
                 run_state = RunState::AwaitingInput;
@@ -125,6 +178,29 @@ impl GameState for State {
             RunState::MonsterTurn => {
                 self.run_systems();
                 run_state = RunState::AwaitingInput;
+            }
+            RunState::ShowTargeting { range, item } => {
+                let (item_menu_result, target_position) =
+                    gui::ranged_target(&mut self.entity_component_system, context, range);
+                match item_menu_result {
+                    gui::ItemMenuResult::Cancel => run_state = RunState::AwaitingInput,
+                    gui::ItemMenuResult::NoResponse => {}
+                    gui::ItemMenuResult::Selected => {
+                        let mut intent = self
+                            .entity_component_system
+                            .write_storage::<WantsToUseItem>();
+                        intent
+                            .insert(
+                                *self.entity_component_system.fetch::<Entity>(),
+                                WantsToUseItem {
+                                    item,
+                                    target: target_position,
+                                },
+                            )
+                            .expect("Unable to insert intent");
+                        run_state = RunState::PlayerTurn;
+                    }
+                }
             }
             RunState::ShowDropItem => {
                 let (menu_state, entity_result) =
@@ -156,19 +232,29 @@ impl GameState for State {
                     gui::ItemMenuResult::NoResponse => {}
                     gui::ItemMenuResult::Selected => {
                         let item_entity = entity_result.unwrap();
-                        let mut intent = self
-                            .entity_component_system
-                            .write_storage::<WantsToDrinkPotion>();
-                        intent
-                            .insert(
-                                *self.entity_component_system.fetch::<Entity>(),
-                                WantsToDrinkPotion {
-                                    potion: item_entity,
-                                },
-                            )
-                            .expect("Unable to insert intent");
 
-                        run_state = RunState::PlayerTurn;
+                        let is_ranged = self.entity_component_system.read_storage::<Ranged>();
+                        let is_item_ranged = is_ranged.get(item_entity);
+                        if let Some(is_item_ranged) = is_item_ranged {
+                            run_state = RunState::ShowTargeting {
+                                range: is_item_ranged.range,
+                                item: item_entity,
+                            };
+                        } else {
+                            let mut intent = self
+                                .entity_component_system
+                                .write_storage::<WantsToUseItem>();
+                            intent
+                                .insert(
+                                    *self.entity_component_system.fetch::<Entity>(),
+                                    WantsToUseItem {
+                                        item: item_entity,
+                                        target: None,
+                                    },
+                                )
+                                .expect("Unable to insert intent");
+                            run_state = RunState::PlayerTurn;
+                        }
                     }
                 }
             }
@@ -178,10 +264,6 @@ impl GameState for State {
             let mut runwriter = self.entity_component_system.write_resource::<RunState>();
             *runwriter = run_state;
         }
-
-        damage_system::delete_the_dead(&mut self.entity_component_system);
-
-        gui::draw_ui(&self.entity_component_system, context);
     }
 }
 
@@ -210,11 +292,16 @@ fn main() -> rltk::BError {
     gs.entity_component_system.register::<SufferDamage>();
 
     gs.entity_component_system.register::<Item>();
-    gs.entity_component_system.register::<Potion>();
+    gs.entity_component_system.register::<ProvidesHealing>();
     gs.entity_component_system.register::<InInventory>();
     gs.entity_component_system.register::<WantsToPickupItem>();
-    gs.entity_component_system.register::<WantsToDrinkPotion>();
+    gs.entity_component_system.register::<WantsToUseItem>();
     gs.entity_component_system.register::<WantsToDropItem>();
+    gs.entity_component_system.register::<Consumable>();
+    gs.entity_component_system.register::<Ranged>();
+    gs.entity_component_system.register::<InflictsDamage>();
+    gs.entity_component_system.register::<AreaOfEffect>();
+    gs.entity_component_system.register::<Confusion>();
 
     let map = Map::new_map_rooms_and_corridors();
     let (player_x, player_y) = map.rooms[0].center();
@@ -225,7 +312,9 @@ fn main() -> rltk::BError {
     gs.entity_component_system
         .insert(Point::new(player_x, player_y));
     gs.entity_component_system.insert(player_entity);
-    gs.entity_component_system.insert(RunState::PreRun);
+    gs.entity_component_system.insert(RunState::MainMenu {
+        menu_selection: menu::MainMenuSelection::NewGame,
+    });
     gs.entity_component_system.insert(game_log::GameLog {
         entries: vec!["Welcome to Riley's Roguelike".to_string()],
     });
