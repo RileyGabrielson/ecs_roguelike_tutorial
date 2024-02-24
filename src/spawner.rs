@@ -1,67 +1,57 @@
-use super::{components, Rect, MAP_WIDTH};
+use crate::{components, random_table::RandomTable, Rect, MAP_WIDTH};
 use rltk::{RandomNumberGenerator, RGB};
 use specs::prelude::*;
 use specs::saveload::{MarkedBuilder, SimpleMarker};
+use std::collections::HashMap;
 
-const MAX_MONSTERS: i32 = 4;
-const MAX_ITEMS: i32 = 2;
-
+const MAX_ROOM_SPAWNS: i32 = 4;
 const ITEM_LAYER: i32 = 5;
 const CHARACTER_LAYER: i32 = 4;
 
-pub fn spawn_room(ecs: &mut World, room: &Rect) {
-    let mut monster_spawn_points: Vec<usize> = Vec::new();
-    let mut item_spawn_points: Vec<usize> = Vec::new();
+pub fn spawn_room(ecs: &mut World, room: &Rect, map_depth: i32) {
+    let spawn_table = room_table(map_depth);
+    let mut spawn_points: HashMap<usize, String> = HashMap::new();
 
-    // Scope to keep the borrow checker happy
     {
         let mut rng = ecs.write_resource::<RandomNumberGenerator>();
-        let num_monsters = rng.roll_dice(1, MAX_MONSTERS + 2) - 3;
-        let num_items = rng.roll_dice(1, MAX_ITEMS + 2) - 3;
+        let num_spawns = rng.roll_dice(1, MAX_ROOM_SPAWNS + 3) + (map_depth - 1) - 3;
 
-        for _i in 0..num_monsters {
+        for _i in 0..num_spawns {
             let mut added = false;
-            while !added {
+            let mut tries = 0;
+            while !added && tries < 20 {
                 let x = (room.x1 + rng.roll_dice(1, i32::abs(room.x2 - room.x1))) as usize;
                 let y = (room.y1 + rng.roll_dice(1, i32::abs(room.y2 - room.y1))) as usize;
-                let idx = (y * (MAP_WIDTH as usize)) + x;
-                if !monster_spawn_points.contains(&idx) {
-                    monster_spawn_points.push(idx);
+                let idx = (y * MAP_WIDTH as usize) + x;
+                if !spawn_points.contains_key(&idx) {
+                    spawn_points.insert(idx, spawn_table.roll(&mut rng));
                     added = true;
-                }
-            }
-        }
-
-        for _i in 0..num_items {
-            let mut added = false;
-            while !added {
-                let x = (room.x1 + rng.roll_dice(1, i32::abs(room.x2 - room.x1))) as usize;
-                let y = (room.y1 + rng.roll_dice(1, i32::abs(room.y2 - room.y1))) as usize;
-                let idx = (y * (MAP_WIDTH as usize)) + x;
-                if !item_spawn_points.contains(&idx) {
-                    item_spawn_points.push(idx);
-                    added = true;
+                } else {
+                    tries += 1;
                 }
             }
         }
     }
 
-    // Actually spawn the monsters
-    for idx in monster_spawn_points.iter() {
-        let x = *idx % (MAP_WIDTH as usize);
-        let y = *idx / (MAP_WIDTH as usize);
-        random_monster(ecs, x as i32, y as i32);
-    }
+    // Actually spawn the things
+    for spawn in spawn_points.iter() {
+        let x = (*spawn.0 % MAP_WIDTH as usize) as i32;
+        let y = (*spawn.0 / MAP_WIDTH as usize) as i32;
 
-    // Actually spawn the potions
-    for idx in item_spawn_points.iter() {
-        let x = *idx % (MAP_WIDTH as usize);
-        let y = *idx / (MAP_WIDTH as usize);
-        random_item(ecs, x as i32, y as i32);
+        match spawn.1.as_ref() {
+            "Goblin" => goblin(ecs, x, y),
+            "Orc" => orc(ecs, x, y),
+            "Health Potion" => health_potion(ecs, x, y),
+            "Fireball Scroll" => fireball_scroll(ecs, x, y),
+            "Confusion Scroll" => confusion_scroll(ecs, x, y),
+            "Magic Missile Scroll" => magic_missile_scroll(ecs, x, y),
+            "Dagger" => dagger(ecs, x, y),
+            "Shield" => shield(ecs, x, y),
+            _ => {}
+        }
     }
 }
 
-/// Spawns the player and returns his/her entity object.
 pub fn player(ecs: &mut World, player_x: i32, player_y: i32) -> Entity {
     let player = ecs
         .create_entity()
@@ -133,19 +123,6 @@ pub fn confusion_wand(ecs: &mut World) -> Entity {
         .build()
 }
 
-/// Spawns a random monster at a given location
-pub fn random_monster(ecs: &mut World, x: i32, y: i32) {
-    let roll: i32;
-    {
-        let mut rng = ecs.write_resource::<RandomNumberGenerator>();
-        roll = rng.roll_dice(1, 2);
-    }
-    match roll {
-        1 => orc(ecs, x, y),
-        _ => goblin(ecs, x, y),
-    }
-}
-
 fn orc(ecs: &mut World, x: i32, y: i32) {
     monster(ecs, x, y, rltk::to_cp437('o'), "Orc");
 }
@@ -182,20 +159,6 @@ fn monster<S: ToString>(ecs: &mut World, x: i32, y: i32, glyph: rltk::FontCharTy
         })
         .marked::<SimpleMarker<components::SerializeMe>>()
         .build();
-}
-
-fn random_item(ecs: &mut World, x: i32, y: i32) {
-    let roll: i32;
-    {
-        let mut rng = ecs.write_resource::<RandomNumberGenerator>();
-        roll = rng.roll_dice(1, 4);
-    }
-    match roll {
-        1 => health_potion(ecs, x, y),
-        2 => magic_missile_scroll(ecs, x, y),
-        3 => confusion_scroll(ecs, x, y),
-        _ => fireball_scroll(ecs, x, y),
-    }
 }
 
 fn health_potion(ecs: &mut World, x: i32, y: i32) {
@@ -276,4 +239,58 @@ fn confusion_scroll(ecs: &mut World, x: i32, y: i32) {
         .with(components::CausesConfusion { turns: 4 })
         .marked::<SimpleMarker<components::SerializeMe>>()
         .build();
+}
+
+fn dagger(ecs: &mut World, x: i32, y: i32) {
+    ecs.create_entity()
+        .with(components::Position { x, y })
+        .with(components::Renderable {
+            glyph: rltk::to_cp437('/'),
+            fg: RGB::named(rltk::CYAN),
+            bg: RGB::named(rltk::BLACK),
+            layer: ITEM_LAYER,
+        })
+        .with(components::Name {
+            name: "Dagger".to_string(),
+        })
+        .with(components::Item {})
+        .with(components::Equippable {
+            slot: components::EquipmentSlot::Melee,
+        })
+        .with(components::MeleePowerBonus { power: 2 })
+        .marked::<SimpleMarker<components::SerializeMe>>()
+        .build();
+}
+
+fn shield(ecs: &mut World, x: i32, y: i32) {
+    ecs.create_entity()
+        .with(components::Position { x, y })
+        .with(components::Renderable {
+            glyph: rltk::to_cp437('('),
+            fg: RGB::named(rltk::CYAN),
+            bg: RGB::named(rltk::BLACK),
+            layer: ITEM_LAYER,
+        })
+        .with(components::Name {
+            name: "Shield".to_string(),
+        })
+        .with(components::Item {})
+        .with(components::Equippable {
+            slot: components::EquipmentSlot::Shield,
+        })
+        .with(components::DefenseBonus { defense: 1 })
+        .marked::<SimpleMarker<components::SerializeMe>>()
+        .build();
+}
+
+fn room_table(map_depth: i32) -> RandomTable {
+    RandomTable::new()
+        .add("Goblin", 10)
+        .add("Orc", 1 + map_depth)
+        .add("Health Potion", 7)
+        .add("Fireball Scroll", 2 + map_depth)
+        .add("Confusion Scroll", 2 + map_depth)
+        .add("Magic Missile Scroll", 4)
+        .add("Dagger", 3)
+        .add("Shield", 3)
 }

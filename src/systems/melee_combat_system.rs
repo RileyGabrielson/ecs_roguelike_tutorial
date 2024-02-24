@@ -14,6 +14,9 @@ impl<'a> System<'a> for MeleeCombatSystem {
         WriteExpect<'a, GameLog>,
         WriteExpect<'a, particle_system::ParticleBuilder>,
         ReadStorage<'a, components::Position>,
+        ReadStorage<'a, components::MeleePowerBonus>,
+        ReadStorage<'a, components::DefenseBonus>,
+        ReadStorage<'a, components::Equipped>,
     );
 
     fn run(&mut self, data: Self::SystemData) {
@@ -27,6 +30,9 @@ impl<'a> System<'a> for MeleeCombatSystem {
             mut game_log,
             mut particle_builder,
             positions,
+            melee_power_bonuses,
+            defense_bonuses,
+            equipped,
         ) = data;
 
         for (entity, wants_melee, name, stats) in
@@ -41,6 +47,15 @@ impl<'a> System<'a> for MeleeCombatSystem {
             }
 
             if stats.hp > 0 {
+                let mut offensive_bonus = 0;
+                for (_item_entity, power_bonus, equipped_by) in
+                    (&entities, &melee_power_bonuses, &equipped).join()
+                {
+                    if equipped_by.owner == entity {
+                        offensive_bonus += power_bonus.power;
+                    }
+                }
+
                 let pos = positions.get(wants_melee.target);
                 if let Some(pos) = pos {
                     particle_builder.request(
@@ -56,7 +71,19 @@ impl<'a> System<'a> for MeleeCombatSystem {
                 if target_stats.hp > 0 {
                     let target_name = names.get(wants_melee.target).unwrap();
 
-                    let damage = i32::max(0, stats.power - target_stats.defense);
+                    let mut defensive_bonus = 0;
+                    for (_item_entity, defense_bonus, equipped_by) in
+                        (&entities, &defense_bonuses, &equipped).join()
+                    {
+                        if equipped_by.owner == wants_melee.target {
+                            defensive_bonus += defense_bonus.defense;
+                        }
+                    }
+
+                    let damage = i32::max(
+                        0,
+                        (stats.power + offensive_bonus) - (target_stats.defense + defensive_bonus),
+                    );
 
                     if damage == 0 {
                         game_log.entries.push(format!(

@@ -33,8 +33,11 @@ pub fn run_systems(ecs: &mut World) {
     let mut item_drop = inventory_system::ItemDropSystem {};
     item_drop.run_now(ecs);
 
-    let mut drink_potions = inventory_system::ItemUseSystem {};
-    drink_potions.run_now(ecs);
+    let mut use_items = inventory_system::ItemUseSystem {};
+    use_items.run_now(ecs);
+
+    let mut remove_items = inventory_system::ItemRemoveSystem {};
+    remove_items.run_now(ecs);
 
     let mut duration_system = duration_system::DurationSystem {};
     duration_system.run_now(ecs);

@@ -15,6 +15,7 @@ pub use game_log::GameLog;
 mod character_creation;
 mod gui;
 mod menu;
+mod random_table;
 mod spawner;
 mod systems;
 
@@ -34,6 +35,7 @@ pub enum RunState {
     PlayerTurn,
     MonsterTurn,
     ShowInventory,
+    ShowRemoveItem,
     ShowDropItem,
     ShowTargeting {
         range: i32,
@@ -45,6 +47,7 @@ pub enum RunState {
     SaveGame,
     Dead,
     CharacterCreation,
+    NextLevel,
 }
 
 struct State {
@@ -54,6 +57,101 @@ struct State {
 impl State {
     fn run_systems(&mut self) {
         systems::run_systems(&mut self.ecs)
+    }
+
+    fn entities_to_remove_on_level_change(&mut self) -> Vec<Entity> {
+        let entities = self.ecs.entities();
+        let player = self.ecs.read_storage::<components::Player>();
+        let inventory = self.ecs.read_storage::<components::InInventory>();
+        let equipped = self.ecs.read_storage::<components::Equipped>();
+        let player_entity = self.ecs.fetch::<Entity>();
+
+        let mut to_delete: Vec<Entity> = Vec::new();
+        for entity in entities.join() {
+            let mut should_delete = true;
+
+            // Don't delete the player
+            let p = player.get(entity);
+            if let Some(_p) = p {
+                should_delete = false;
+            }
+
+            // Don't delete the player's inventory
+            let bp = inventory.get(entity);
+            if let Some(bp) = bp {
+                if bp.owner == *player_entity {
+                    should_delete = false;
+                }
+            }
+
+            // Don't delete the player's equipment
+            let bp = equipped.get(entity);
+            if let Some(bp) = bp {
+                if bp.owner == *player_entity {
+                    should_delete = false;
+                }
+            }
+
+            if should_delete {
+                to_delete.push(entity);
+            }
+        }
+
+        to_delete
+    }
+
+    fn goto_next_level(&mut self) {
+        // Delete entities that aren't the player or his/her equipment
+        let to_delete = self.entities_to_remove_on_level_change();
+        for target in to_delete {
+            self.ecs
+                .delete_entity(target)
+                .expect("Unable to delete entity");
+        }
+
+        // Build a new map and place the player
+        let worldmap;
+        {
+            let mut worldmap_resource = self.ecs.write_resource::<Map>();
+            let current_depth = worldmap_resource.depth;
+            *worldmap_resource = Map::new_map_rooms_and_corridors(current_depth + 1);
+            worldmap = worldmap_resource.clone();
+        }
+
+        // Spawn bad guys
+        for room in worldmap.rooms.iter().skip(1) {
+            spawner::spawn_room(&mut self.ecs, room, worldmap.depth);
+        }
+
+        // Place the player and update resources
+        let (player_x, player_y) = worldmap.rooms[0].center();
+        let mut player_position = self.ecs.write_resource::<Point>();
+        *player_position = Point::new(player_x, player_y);
+        let mut position_components = self.ecs.write_storage::<components::Position>();
+        let player_entity = self.ecs.fetch::<Entity>();
+        let player_pos_comp = position_components.get_mut(*player_entity);
+        if let Some(player_pos_comp) = player_pos_comp {
+            player_pos_comp.x = player_x;
+            player_pos_comp.y = player_y;
+        }
+
+        // Mark the player's visibility as dirty
+        let mut viewshed_components = self.ecs.write_storage::<components::Viewshed>();
+        let vs = viewshed_components.get_mut(*player_entity);
+        if let Some(vs) = vs {
+            vs.dirty = true;
+        }
+
+        // Notify the player and give them some health
+        let mut gamelog = self.ecs.fetch_mut::<game_log::GameLog>();
+        gamelog
+            .entries
+            .push("You descend to the next level, and take a moment to heal.".to_string());
+        let mut player_health_store = self.ecs.write_storage::<components::CombatStats>();
+        let player_health = player_health_store.get_mut(*player_entity);
+        if let Some(player_health) = player_health {
+            player_health.hp = i32::max(player_health.hp, player_health.max_hp / 2);
+        }
     }
 }
 
@@ -135,6 +233,10 @@ impl GameState for State {
                         }
                     }
                 }
+            }
+            RunState::NextLevel => {
+                self.goto_next_level();
+                run_state = RunState::PreRun;
             }
             RunState::MainMenu { .. } => {
                 let result = menu::main_menu(&mut self.ecs, context);
@@ -264,6 +366,24 @@ impl GameState for State {
                     }
                 }
             }
+            RunState::ShowRemoveItem => {
+                let result = gui::remove_item_menu(&mut self.ecs, context);
+                match result.0 {
+                    gui::ItemMenuResult::Cancel => run_state = RunState::AwaitingInput,
+                    gui::ItemMenuResult::NoResponse => {}
+                    gui::ItemMenuResult::Selected => {
+                        let item_entity = result.1.unwrap();
+                        let mut intent = self.ecs.write_storage::<components::WantsToRemoveItem>();
+                        intent
+                            .insert(
+                                *self.ecs.fetch::<Entity>(),
+                                components::WantsToRemoveItem { item: item_entity },
+                            )
+                            .expect("Unable to insert intent");
+                        run_state = RunState::PlayerTurn;
+                    }
+                }
+            }
             RunState::ShowInventory => {
                 let (menu_state, entity_result) = gui::show_inventory(&mut self.ecs, context);
                 match menu_state {
@@ -307,7 +427,7 @@ impl GameState for State {
 fn add_new_world_details(ecs: &mut World) {
     ecs.insert(SimpleMarkerAllocator::<components::SerializeMe>::new());
 
-    let map = Map::new_map_rooms_and_corridors();
+    let map = Map::new_map_rooms_and_corridors(1);
     let (player_x, player_y) = map.rooms[0].center();
     let player_entity = spawner::player(ecs, player_x, player_y);
 
@@ -323,7 +443,7 @@ fn add_new_world_details(ecs: &mut World) {
     ecs.insert(systems::particle_system::ParticleBuilder::new());
 
     for room in map.rooms.iter().skip(1) {
-        spawner::spawn_room(ecs, room);
+        spawner::spawn_room(ecs, room, map.depth);
     }
 
     ecs.insert(map);
@@ -376,6 +496,11 @@ fn main() -> rltk::BError {
     gs.ecs.register::<components::ActiveCooldown>();
     gs.ecs.register::<components::CausesConfusion>();
     gs.ecs.register::<components::ParticleLifetime>();
+    gs.ecs.register::<components::Equippable>();
+    gs.ecs.register::<components::Equipped>();
+    gs.ecs.register::<components::MeleePowerBonus>();
+    gs.ecs.register::<components::DefenseBonus>();
+    gs.ecs.register::<components::WantsToRemoveItem>();
 
     add_new_world_details(&mut gs.ecs);
 
