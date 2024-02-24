@@ -6,6 +6,7 @@ pub mod inventory_system;
 pub mod map_indexing_system;
 pub mod melee_combat_system;
 pub mod monster_ai_system;
+pub mod particle_system;
 pub mod saveload_system;
 pub mod status_effects_system;
 pub mod visibility_system;
@@ -39,6 +40,9 @@ pub fn run_systems(ecs: &mut World) {
     duration_system.run_now(ecs);
 
     let mut status_effects = status_effects_system::StatusEffectsSystem {};
+    status_effects.run_now(ecs);
+
+    let mut status_effects = particle_system::ParticleSpawnSystem {};
     status_effects.run_now(ecs);
 
     ecs.maintain();

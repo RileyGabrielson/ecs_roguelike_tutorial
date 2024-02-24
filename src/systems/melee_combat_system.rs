@@ -1,4 +1,4 @@
-use crate::{components, GameLog};
+use crate::{components, systems::particle_system, GameLog};
 use specs::prelude::*;
 
 pub struct MeleeCombatSystem {}
@@ -12,6 +12,8 @@ impl<'a> System<'a> for MeleeCombatSystem {
         WriteStorage<'a, components::SufferDamage>,
         WriteStorage<'a, components::Invisible>,
         WriteExpect<'a, GameLog>,
+        WriteExpect<'a, particle_system::ParticleBuilder>,
+        ReadStorage<'a, components::Position>,
     );
 
     fn run(&mut self, data: Self::SystemData) {
@@ -23,6 +25,8 @@ impl<'a> System<'a> for MeleeCombatSystem {
             mut inflict_damage,
             mut invisible,
             mut game_log,
+            mut particle_builder,
+            positions,
         ) = data;
 
         for (entity, wants_melee, name, stats) in
@@ -37,6 +41,17 @@ impl<'a> System<'a> for MeleeCombatSystem {
             }
 
             if stats.hp > 0 {
+                let pos = positions.get(wants_melee.target);
+                if let Some(pos) = pos {
+                    particle_builder.request(
+                        pos.x,
+                        pos.y,
+                        rltk::RGB::named(rltk::ORANGE),
+                        rltk::RGB::named(rltk::BLACK),
+                        rltk::to_cp437('‼'),
+                        130.0,
+                    );
+                }
                 let target_stats = combat_stats.get(wants_melee.target).unwrap();
                 if target_stats.hp > 0 {
                     let target_name = names.get(wants_melee.target).unwrap();

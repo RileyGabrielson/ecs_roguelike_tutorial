@@ -61,6 +61,7 @@ impl GameState for State {
     fn tick(&mut self, context: &mut Rltk) {
         let mut run_state = *self.ecs.fetch::<RunState>();
         context.cls();
+        systems::particle_system::cull_dead_particles(&mut self.ecs, context);
 
         match run_state {
             RunState::MainMenu { .. } | RunState::CharacterCreation => {}
@@ -319,6 +320,7 @@ fn add_new_world_details(ecs: &mut World) {
     ecs.insert(game_log::GameLog {
         entries: vec!["Welcome to Riley's Roguelike".to_string()],
     });
+    ecs.insert(systems::particle_system::ParticleBuilder::new());
 
     for room in map.rooms.iter().skip(1) {
         spawner::spawn_room(ecs, room);

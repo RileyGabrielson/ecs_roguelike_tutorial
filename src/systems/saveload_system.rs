@@ -78,7 +78,8 @@ pub fn save_game(ecs: &mut World) {
             AppliesInvisiblity,
             Cooldown,
             ActiveCooldown,
-            CausesConfusion
+            CausesConfusion,
+            ParticleLifetime
         );
     }
 
@@ -159,7 +160,8 @@ pub fn load_game(ecs: &mut World) {
             AppliesInvisiblity,
             Cooldown,
             ActiveCooldown,
-            CausesConfusion
+            CausesConfusion,
+            ParticleLifetime
         );
     }
 
