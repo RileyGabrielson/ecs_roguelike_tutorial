@@ -1,4 +1,4 @@
-use crate::{components, random_table::RandomTable, Rect, MAP_WIDTH};
+use crate::{components::*, random_table::RandomTable, Rect, MAP_WIDTH};
 use rltk::{RandomNumberGenerator, RGB};
 use specs::prelude::*;
 use specs::saveload::{MarkedBuilder, SimpleMarker};
@@ -47,6 +47,9 @@ pub fn spawn_room(ecs: &mut World, room: &Rect, map_depth: i32) {
             "Magic Missile Scroll" => magic_missile_scroll(ecs, x, y),
             "Dagger" => dagger(ecs, x, y),
             "Shield" => shield(ecs, x, y),
+            "Longsword" => longsword(ecs, x, y),
+            "Tower Shield" => tower_shield(ecs, x, y),
+            "Magic Mapping Scroll" => magic_mapping_scroll(ecs, x, y),
             _ => {}
         }
     }
@@ -55,32 +58,32 @@ pub fn spawn_room(ecs: &mut World, room: &Rect, map_depth: i32) {
 pub fn player(ecs: &mut World, player_x: i32, player_y: i32) -> Entity {
     let player = ecs
         .create_entity()
-        .with(components::Position {
+        .with(Position {
             x: player_x,
             y: player_y,
         })
-        .with(components::Renderable {
+        .with(Renderable {
             layer: CHARACTER_LAYER,
             glyph: rltk::to_cp437('@'),
             fg: RGB::named(rltk::YELLOW),
             bg: RGB::named(rltk::BLACK),
         })
-        .with(components::Player {})
-        .with(components::Viewshed {
+        .with(Player {})
+        .with(Viewshed {
             visible_tiles: Vec::new(),
             range: 8,
             dirty: true,
         })
-        .with(components::Name {
+        .with(Name {
             name: "Player".to_string(),
         })
-        .with(components::CombatStats {
+        .with(CombatStats {
             max_hp: 30,
             hp: 30,
             defense: 2,
             power: 5,
         })
-        .marked::<SimpleMarker<components::SerializeMe>>()
+        .marked::<SimpleMarker<SerializeMe>>()
         .build();
 
     player
@@ -88,38 +91,38 @@ pub fn player(ecs: &mut World, player_x: i32, player_y: i32) -> Entity {
 
 pub fn invisibility_timer(ecs: &mut World) -> Entity {
     ecs.create_entity()
-        .with(components::Renderable {
+        .with(Renderable {
             layer: CHARACTER_LAYER,
             glyph: rltk::to_cp437('v'),
             fg: RGB::named(rltk::SILVER),
             bg: RGB::named(rltk::BLACK),
         })
-        .with(components::Name {
+        .with(Name {
             name: "Invisibility Timer".to_string(),
         })
-        .with(components::Item {})
-        .with(components::AppliesInvisiblity { turns: 18 })
-        .with(components::Cooldown { turns: 60 })
-        .marked::<SimpleMarker<components::SerializeMe>>()
+        .with(Item {})
+        .with(AppliesInvisiblity { turns: 18 })
+        .with(Cooldown { turns: 60 })
+        .marked::<SimpleMarker<SerializeMe>>()
         .build()
 }
 
 pub fn confusion_wand(ecs: &mut World) -> Entity {
     ecs.create_entity()
-        .with(components::Renderable {
+        .with(Renderable {
             layer: CHARACTER_LAYER,
             glyph: rltk::to_cp437('/'),
             fg: RGB::named(rltk::PINK),
             bg: RGB::named(rltk::BLACK),
         })
-        .with(components::Name {
+        .with(Name {
             name: "Confusion Wand".to_string(),
         })
-        .with(components::Item {})
-        .with(components::CausesConfusion { turns: 5 })
-        .with(components::Ranged { range: 6 })
-        .with(components::Cooldown { turns: 45 })
-        .marked::<SimpleMarker<components::SerializeMe>>()
+        .with(Item {})
+        .with(CausesConfusion { turns: 5 })
+        .with(Ranged { range: 6 })
+        .with(Cooldown { turns: 45 })
+        .marked::<SimpleMarker<SerializeMe>>()
         .build()
 }
 
@@ -132,154 +135,215 @@ fn goblin(ecs: &mut World, x: i32, y: i32) {
 
 fn monster<S: ToString>(ecs: &mut World, x: i32, y: i32, glyph: rltk::FontCharType, name: S) {
     ecs.create_entity()
-        .with(components::Position { x, y })
-        .with(components::Renderable {
+        .with(Position { x, y })
+        .with(Renderable {
             layer: CHARACTER_LAYER,
             glyph,
             fg: RGB::named(rltk::RED),
             bg: RGB::named(rltk::BLACK),
         })
-        .with(components::Viewshed {
+        .with(Viewshed {
             visible_tiles: Vec::new(),
             range: 5,
             dirty: true,
         })
-        .with(components::Monster {
+        .with(Monster {
             is_targeting_player: false,
         })
-        .with(components::Name {
+        .with(Name {
             name: name.to_string(),
         })
-        .with(components::BlocksTile {})
-        .with(components::CombatStats {
+        .with(BlocksTile {})
+        .with(CombatStats {
             max_hp: 16,
             hp: 16,
             defense: 1,
             power: 4,
         })
-        .marked::<SimpleMarker<components::SerializeMe>>()
+        .marked::<SimpleMarker<SerializeMe>>()
         .build();
 }
 
 fn health_potion(ecs: &mut World, x: i32, y: i32) {
     ecs.create_entity()
-        .with(components::Position { x, y })
-        .with(components::Renderable {
+        .with(Position { x, y })
+        .with(Renderable {
             layer: ITEM_LAYER,
             glyph: rltk::to_cp437('¡'),
             fg: RGB::named(rltk::MAGENTA),
             bg: RGB::named(rltk::BLACK),
         })
-        .with(components::Name {
+        .with(Name {
             name: "Health Potion".to_string(),
         })
-        .with(components::Item {})
-        .with(components::Consumable {})
-        .with(components::ProvidesHealing { heal_amount: 8 })
-        .marked::<SimpleMarker<components::SerializeMe>>()
+        .with(Item {})
+        .with(Consumable {})
+        .with(ProvidesHealing { heal_amount: 8 })
+        .marked::<SimpleMarker<SerializeMe>>()
         .build();
 }
 
 fn magic_missile_scroll(ecs: &mut World, x: i32, y: i32) {
     ecs.create_entity()
-        .with(components::Position { x, y })
-        .with(components::Renderable {
+        .with(Position { x, y })
+        .with(Renderable {
             glyph: rltk::to_cp437(')'),
             fg: RGB::named(rltk::CYAN),
             bg: RGB::named(rltk::BLACK),
             layer: ITEM_LAYER,
         })
-        .with(components::Name {
+        .with(Name {
             name: "Magic Missile Scroll".to_string(),
         })
-        .with(components::Item {})
-        .with(components::Consumable {})
-        .with(components::Ranged { range: 6 })
-        .with(components::InflictsDamage { damage: 8 })
-        .marked::<SimpleMarker<components::SerializeMe>>()
+        .with(Item {})
+        .with(Consumable {})
+        .with(Ranged { range: 6 })
+        .with(InflictsDamage { damage: 8 })
+        .marked::<SimpleMarker<SerializeMe>>()
         .build();
 }
 
 fn fireball_scroll(ecs: &mut World, x: i32, y: i32) {
     ecs.create_entity()
-        .with(components::Position { x, y })
-        .with(components::Renderable {
+        .with(Position { x, y })
+        .with(Renderable {
             glyph: rltk::to_cp437(')'),
             fg: RGB::named(rltk::ORANGE),
             bg: RGB::named(rltk::BLACK),
             layer: ITEM_LAYER,
         })
-        .with(components::Name {
+        .with(Name {
             name: "Fireball Scroll".to_string(),
         })
-        .with(components::Item {})
-        .with(components::Consumable {})
-        .with(components::Ranged { range: 6 })
-        .with(components::InflictsDamage { damage: 20 })
-        .with(components::AreaOfEffect { radius: 3 })
-        .marked::<SimpleMarker<components::SerializeMe>>()
+        .with(Item {})
+        .with(Consumable {})
+        .with(Ranged { range: 6 })
+        .with(InflictsDamage { damage: 20 })
+        .with(AreaOfEffect { radius: 3 })
+        .marked::<SimpleMarker<SerializeMe>>()
         .build();
 }
 
 fn confusion_scroll(ecs: &mut World, x: i32, y: i32) {
     ecs.create_entity()
-        .with(components::Position { x, y })
-        .with(components::Renderable {
+        .with(Position { x, y })
+        .with(Renderable {
             glyph: rltk::to_cp437(')'),
             fg: RGB::named(rltk::PINK),
             bg: RGB::named(rltk::BLACK),
             layer: ITEM_LAYER,
         })
-        .with(components::Name {
+        .with(Name {
             name: "Confusion Scroll".to_string(),
         })
-        .with(components::Item {})
-        .with(components::Consumable {})
-        .with(components::Ranged { range: 6 })
-        .with(components::CausesConfusion { turns: 4 })
-        .marked::<SimpleMarker<components::SerializeMe>>()
+        .with(Item {})
+        .with(Consumable {})
+        .with(Ranged { range: 6 })
+        .with(CausesConfusion { turns: 4 })
+        .marked::<SimpleMarker<SerializeMe>>()
         .build();
 }
 
 fn dagger(ecs: &mut World, x: i32, y: i32) {
     ecs.create_entity()
-        .with(components::Position { x, y })
-        .with(components::Renderable {
+        .with(Position { x, y })
+        .with(Renderable {
             glyph: rltk::to_cp437('/'),
             fg: RGB::named(rltk::CYAN),
             bg: RGB::named(rltk::BLACK),
             layer: ITEM_LAYER,
         })
-        .with(components::Name {
+        .with(Name {
             name: "Dagger".to_string(),
         })
-        .with(components::Item {})
-        .with(components::Equippable {
-            slot: components::EquipmentSlot::Melee,
+        .with(Item {})
+        .with(Equippable {
+            slot: EquipmentSlot::Melee,
         })
-        .with(components::MeleePowerBonus { power: 2 })
-        .marked::<SimpleMarker<components::SerializeMe>>()
+        .with(MeleePowerBonus { power: 2 })
+        .marked::<SimpleMarker<SerializeMe>>()
         .build();
 }
 
 fn shield(ecs: &mut World, x: i32, y: i32) {
     ecs.create_entity()
-        .with(components::Position { x, y })
-        .with(components::Renderable {
+        .with(Position { x, y })
+        .with(Renderable {
             glyph: rltk::to_cp437('('),
             fg: RGB::named(rltk::CYAN),
             bg: RGB::named(rltk::BLACK),
             layer: ITEM_LAYER,
         })
-        .with(components::Name {
+        .with(Name {
             name: "Shield".to_string(),
         })
-        .with(components::Item {})
-        .with(components::Equippable {
-            slot: components::EquipmentSlot::Shield,
+        .with(Item {})
+        .with(Equippable {
+            slot: EquipmentSlot::Shield,
         })
-        .with(components::DefenseBonus { defense: 1 })
-        .marked::<SimpleMarker<components::SerializeMe>>()
+        .with(DefenseBonus { defense: 1 })
+        .marked::<SimpleMarker<SerializeMe>>()
+        .build();
+}
+
+fn longsword(ecs: &mut World, x: i32, y: i32) {
+    ecs.create_entity()
+        .with(Position { x, y })
+        .with(Renderable {
+            glyph: rltk::to_cp437('/'),
+            fg: RGB::named(rltk::YELLOW),
+            bg: RGB::named(rltk::BLACK),
+            layer: ITEM_LAYER,
+        })
+        .with(Name {
+            name: "Longsword".to_string(),
+        })
+        .with(Item {})
+        .with(Equippable {
+            slot: EquipmentSlot::Melee,
+        })
+        .with(MeleePowerBonus { power: 4 })
+        .marked::<SimpleMarker<SerializeMe>>()
+        .build();
+}
+
+fn tower_shield(ecs: &mut World, x: i32, y: i32) {
+    ecs.create_entity()
+        .with(Position { x, y })
+        .with(Renderable {
+            glyph: rltk::to_cp437('('),
+            fg: RGB::named(rltk::YELLOW),
+            bg: RGB::named(rltk::BLACK),
+            layer: ITEM_LAYER,
+        })
+        .with(Name {
+            name: "Tower Shield".to_string(),
+        })
+        .with(Item {})
+        .with(Equippable {
+            slot: EquipmentSlot::Shield,
+        })
+        .with(DefenseBonus { defense: 3 })
+        .marked::<SimpleMarker<SerializeMe>>()
+        .build();
+}
+
+fn magic_mapping_scroll(ecs: &mut World, x: i32, y: i32) {
+    ecs.create_entity()
+        .with(Position { x, y })
+        .with(Renderable {
+            glyph: rltk::to_cp437(')'),
+            fg: RGB::named(rltk::CYAN3),
+            bg: RGB::named(rltk::BLACK),
+            layer: ITEM_LAYER,
+        })
+        .with(Name {
+            name: "Scroll of Magic Mapping".to_string(),
+        })
+        .with(Item {})
+        .with(MagicMapper {})
+        .with(Consumable {})
+        .marked::<SimpleMarker<SerializeMe>>()
         .build();
 }
 
@@ -293,4 +357,7 @@ fn room_table(map_depth: i32) -> RandomTable {
         .add("Magic Missile Scroll", 4)
         .add("Dagger", 3)
         .add("Shield", 3)
+        .add("Longsword", map_depth - 1)
+        .add("Tower Shield", map_depth - 1)
+        .add("Magic Mapping Scroll", 2)
 }

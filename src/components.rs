@@ -171,29 +171,29 @@ pub struct ParticleLifetime {
     pub lifetime_ms: f32,
 }
 
-#[derive(PartialEq, Copy, Clone, Serialize, Deserialize)]
+#[derive(PartialEq, Copy, Clone, Serialize, Deserialize, Debug)]
 pub enum EquipmentSlot {
     Melee,
     Shield,
 }
 
-#[derive(Component, Serialize, Deserialize, Clone)]
+#[derive(Component, ConvertSaveload, Clone, Debug)]
 pub struct Equippable {
     pub slot: EquipmentSlot,
 }
 
-#[derive(Component, ConvertSaveload, Clone)]
+#[derive(Component, ConvertSaveload, Clone, Debug)]
 pub struct Equipped {
     pub owner: Entity,
     pub slot: EquipmentSlot,
 }
 
-#[derive(Component, ConvertSaveload, Clone)]
+#[derive(Component, ConvertSaveload, Clone, Debug)]
 pub struct MeleePowerBonus {
     pub power: i32,
 }
 
-#[derive(Component, ConvertSaveload, Clone)]
+#[derive(Component, ConvertSaveload, Clone, Debug)]
 pub struct DefenseBonus {
     pub defense: i32,
 }
@@ -202,3 +202,6 @@ pub struct DefenseBonus {
 pub struct WantsToRemoveItem {
     pub item: Entity,
 }
+
+#[derive(Component, Debug, Serialize, Deserialize, Clone)]
+pub struct MagicMapper {}

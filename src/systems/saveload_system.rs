@@ -84,7 +84,8 @@ pub fn save_game(ecs: &mut World) {
             Equipped,
             MeleePowerBonus,
             DefenseBonus,
-            WantsToRemoveItem
+            WantsToRemoveItem,
+            MagicMapper
         );
     }
 
@@ -171,7 +172,8 @@ pub fn load_game(ecs: &mut World) {
             Equipped,
             MeleePowerBonus,
             DefenseBonus,
-            WantsToRemoveItem
+            WantsToRemoveItem,
+            MagicMapper
         );
     }
 

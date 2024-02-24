@@ -1,4 +1,4 @@
-use crate::{components, systems::particle_system, GameLog, Map};
+use crate::{components, systems::particle_system, GameLog, Map, RunState};
 use specs::prelude::*;
 
 pub struct ItemCollectionSystem {}
@@ -47,7 +47,7 @@ impl<'a> System<'a> for ItemUseSystem {
     type SystemData = (
         ReadExpect<'a, Entity>,
         WriteExpect<'a, GameLog>,
-        ReadExpect<'a, Map>,
+        WriteExpect<'a, Map>,
         Entities<'a>,
         WriteStorage<'a, components::WantsToUseItem>,
         ReadStorage<'a, components::Name>,
@@ -68,13 +68,15 @@ impl<'a> System<'a> for ItemUseSystem {
         ReadStorage<'a, components::Equippable>,
         WriteStorage<'a, components::Equipped>,
         WriteStorage<'a, components::InInventory>,
+        ReadStorage<'a, components::MagicMapper>,
+        WriteExpect<'a, RunState>,
     );
 
     fn run(&mut self, data: Self::SystemData) {
         let (
             player_entity,
             mut gamelog,
-            map,
+            mut map,
             entities,
             mut wants_use,
             names,
@@ -95,6 +97,8 @@ impl<'a> System<'a> for ItemUseSystem {
             equippable,
             mut equipped,
             mut inventory,
+            magic_mapper,
+            mut run_state,
         ) = data;
 
         for (entity, use_item) in (&entities, &wants_use).join() {
@@ -244,6 +248,19 @@ impl<'a> System<'a> for ItemUseSystem {
                                 }
                             }
                         }
+                    }
+                }
+
+                // If its a magic mapper...
+                let is_mapper = magic_mapper.get(use_item.item);
+                match is_mapper {
+                    None => {}
+                    Some(_) => {
+                        used_item = true;
+                        gamelog
+                            .entries
+                            .push("The map is revealed to you!".to_string());
+                        *run_state = RunState::MagicMapReveal { row: 0 };
                     }
                 }
 

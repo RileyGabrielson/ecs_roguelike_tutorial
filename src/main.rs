@@ -48,6 +48,9 @@ pub enum RunState {
     Dead,
     CharacterCreation,
     NextLevel,
+    MagicMapReveal {
+        row: i32,
+    },
 }
 
 struct State {
@@ -234,6 +237,18 @@ impl GameState for State {
                     }
                 }
             }
+            RunState::MagicMapReveal { row } => {
+                let mut map = self.ecs.fetch_mut::<Map>();
+                for x in 0..MAP_WIDTH {
+                    let idx = map.xy_idx(x as i32, row);
+                    map.revealed_tiles[idx] = true;
+                }
+                if row == MAP_HEIGHT - 1 {
+                    run_state = RunState::MonsterTurn;
+                } else {
+                    run_state = RunState::MagicMapReveal { row: row + 1 };
+                }
+            }
             RunState::NextLevel => {
                 self.goto_next_level();
                 run_state = RunState::PreRun;
@@ -320,7 +335,13 @@ impl GameState for State {
             }
             RunState::PlayerTurn => {
                 self.run_systems();
-                run_state = RunState::MonsterTurn;
+
+                match *self.ecs.fetch::<RunState>() {
+                    RunState::MagicMapReveal { .. } => {
+                        run_state = RunState::MagicMapReveal { row: 0 }
+                    }
+                    _ => run_state = RunState::MonsterTurn,
+                }
             }
             RunState::MonsterTurn => {
                 self.run_systems();
@@ -501,6 +522,7 @@ fn main() -> rltk::BError {
     gs.ecs.register::<components::MeleePowerBonus>();
     gs.ecs.register::<components::DefenseBonus>();
     gs.ecs.register::<components::WantsToRemoveItem>();
+    gs.ecs.register::<components::MagicMapper>();
 
     add_new_world_details(&mut gs.ecs);
 
