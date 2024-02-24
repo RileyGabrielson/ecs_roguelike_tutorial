@@ -1,4 +1,4 @@
-use super::{components, GameLog, Map};
+use crate::{components, GameLog, Map};
 use specs::prelude::*;
 
 pub struct ItemCollectionSystem {}

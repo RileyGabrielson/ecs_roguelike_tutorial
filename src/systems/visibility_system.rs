@@ -1,4 +1,4 @@
-use super::{components, Map};
+use crate::{components, Map};
 use rltk::{field_of_view, Point};
 use specs::prelude::*;
 

@@ -1,4 +1,4 @@
-use super::{components, RunState};
+use crate::{components, RunState};
 use specs::prelude::*;
 
 pub struct DurationSystem {}

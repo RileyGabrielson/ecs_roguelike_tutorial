@@ -1,4 +1,4 @@
-use super::{components, Map};
+use crate::{components, Map};
 use specs::prelude::*;
 
 pub struct MapIndexingSystem {}

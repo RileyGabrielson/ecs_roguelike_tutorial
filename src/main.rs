@@ -1,45 +1,22 @@
 use rltk::{GameState, Point, Rltk};
 use specs::prelude::*;
 use specs::saveload::{SimpleMarker, SimpleMarkerAllocator};
-
 extern crate serde;
 
 mod components;
-// pub use components::{
-//     ActiveCooldown, AppliesInvisiblity, AreaOfEffect, BlocksTile, CombatStats, Confusion,
-//     Consumable, Cooldown, InInventory, InflictsDamage, Invisible, Item, Monster, Name, Player,
-//     Position, ProvidesHealing, Ranged, Renderable, SerializationHelper, SerializeMe, SufferDamage,
-//     Viewshed, WantsBeInvisible, WantsToDropItem, WantsToMelee, WantsToPickupItem, WantsToUseItem,
-// };
 mod map;
 pub use map::*;
 mod player;
 use player::*;
 mod rect;
 pub use rect::Rect;
-mod visibility_system;
-use visibility_system::VisibilitySystem;
-mod monster_ai_system;
-use monster_ai_system::MonsterAI;
-mod map_indexing_system;
-use map_indexing_system::MapIndexingSystem;
-mod melee_combat_system;
-use melee_combat_system::MeleeCombatSystem;
-mod damage_system;
-use damage_system::DamageSystem;
 mod game_log;
 pub use game_log::GameLog;
-mod gui;
-mod inventory_system;
-use inventory_system::{ItemCollectionSystem, ItemDropSystem, ItemUseSystem};
-mod duration_system;
-use duration_system::DurationSystem;
-mod menu;
-mod saveload_system;
-mod spawner;
-mod status_effects_system;
-use status_effects_system::StatusEffectsSystem;
 mod character_creation;
+mod gui;
+mod menu;
+mod spawner;
+mod systems;
 
 pub const MAP_WIDTH: i32 = 80;
 pub const MAP_HEIGHT: i32 = 43;
@@ -76,37 +53,7 @@ struct State {
 
 impl State {
     fn run_systems(&mut self) {
-        let mut visibility = VisibilitySystem {};
-        visibility.run_now(&self.ecs);
-
-        let mut monster_ai = MonsterAI {};
-        monster_ai.run_now(&self.ecs);
-
-        let mut map_indexing = MapIndexingSystem {};
-        map_indexing.run_now(&self.ecs);
-
-        let mut melee_combat = MeleeCombatSystem {};
-        melee_combat.run_now(&self.ecs);
-
-        let mut damage = DamageSystem {};
-        damage.run_now(&self.ecs);
-
-        let mut item_collection = ItemCollectionSystem {};
-        item_collection.run_now(&self.ecs);
-
-        let mut item_drop = ItemDropSystem {};
-        item_drop.run_now(&self.ecs);
-
-        let mut drink_potions = ItemUseSystem {};
-        drink_potions.run_now(&self.ecs);
-
-        let mut duration_system = DurationSystem {};
-        duration_system.run_now(&self.ecs);
-
-        let mut status_effects = StatusEffectsSystem {};
-        status_effects.run_now(&self.ecs);
-
-        self.ecs.maintain();
+        systems::run_systems(&mut self.ecs)
     }
 }
 
@@ -165,7 +112,7 @@ impl GameState for State {
                     gui::draw_ui(&self.ecs, context);
                 }
                 {
-                    let is_player_dead = damage_system::delete_the_dead(&mut self.ecs);
+                    let is_player_dead = systems::damage_system::delete_the_dead(&mut self.ecs);
                     match is_player_dead {
                         None => {}
                         Some(_) => run_state = RunState::Dead,
@@ -202,9 +149,9 @@ impl GameState for State {
                             run_state = RunState::CharacterCreation;
                         }
                         menu::MainMenuSelection::LoadGame => {
-                            saveload_system::load_game(&mut self.ecs);
+                            systems::saveload_system::load_game(&mut self.ecs);
                             run_state = RunState::AwaitingInput;
-                            saveload_system::delete_save();
+                            systems::saveload_system::delete_save();
                         }
                         menu::MainMenuSelection::Quit => {
                             ::std::process::exit(0);
@@ -256,7 +203,7 @@ impl GameState for State {
                 }
             }
             RunState::SaveGame => {
-                saveload_system::save_game(&mut self.ecs);
+                systems::saveload_system::save_game(&mut self.ecs);
                 run_state = RunState::MainMenu {
                     menu_selection: menu::MainMenuSelection::LoadGame,
                 };
@@ -381,7 +328,7 @@ fn add_new_world_details(ecs: &mut World) {
 }
 
 fn new_game(ecs: &mut World) {
-    saveload_system::delete_save();
+    systems::saveload_system::delete_save();
     ecs.delete_all();
     add_new_world_details(ecs);
 }
@@ -407,7 +354,6 @@ fn main() -> rltk::BError {
     gs.ecs.register::<components::CombatStats>();
     gs.ecs.register::<components::WantsToMelee>();
     gs.ecs.register::<components::SufferDamage>();
-
     gs.ecs.register::<components::Item>();
     gs.ecs.register::<components::ProvidesHealing>();
     gs.ecs.register::<components::InInventory>();
@@ -427,6 +373,7 @@ fn main() -> rltk::BError {
     gs.ecs.register::<components::Cooldown>();
     gs.ecs.register::<components::ActiveCooldown>();
     gs.ecs.register::<components::CausesConfusion>();
+    gs.ecs.register::<components::ParticleLifetime>();
 
     add_new_world_details(&mut gs.ecs);
 

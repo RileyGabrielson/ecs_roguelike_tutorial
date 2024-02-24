@@ -163,3 +163,8 @@ pub struct Cooldown {
 pub struct ActiveCooldown {
     pub turns_remaining: i32,
 }
+
+#[derive(Component, Serialize, Deserialize, Clone)]
+pub struct ParticleLifetime {
+    pub lifetime_ms: f32,
+}

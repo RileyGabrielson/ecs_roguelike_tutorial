@@ -1,4 +1,4 @@
-use super::{components, Map, RunState};
+use crate::{components, Map, RunState};
 use rltk::Point;
 use specs::prelude::*;
 

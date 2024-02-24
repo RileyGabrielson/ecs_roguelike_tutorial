@@ -1,4 +1,4 @@
-use super::components;
+use crate::components;
 use specs::prelude::*;
 
 pub struct StatusEffectsSystem {}

@@ -1,4 +1,5 @@
-use super::components::*;
+use crate::components::*;
+use crate::{map, MAP_COUNT};
 #[allow(deprecated)]
 use specs::error::NoError;
 use specs::prelude::*;
@@ -30,7 +31,7 @@ pub fn save_game(_ecs: &mut World) {}
 #[cfg(not(target_arch = "wasm32"))]
 pub fn save_game(ecs: &mut World) {
     // Create helper
-    let mapcopy = ecs.get_mut::<super::map::Map>().unwrap().clone();
+    let mapcopy = ecs.get_mut::<map::Map>().unwrap().clone();
     let savehelper = ecs
         .create_entity()
         .with(SerializationHelper { map: mapcopy })
@@ -169,9 +170,9 @@ pub fn load_game(ecs: &mut World) {
         let player = ecs.read_storage::<Player>();
         let position = ecs.read_storage::<Position>();
         for (e, h) in (&entities, &helper).join() {
-            let mut worldmap = ecs.write_resource::<super::map::Map>();
+            let mut worldmap = ecs.write_resource::<map::Map>();
             *worldmap = h.map.clone();
-            worldmap.tile_content = vec![Vec::new(); super::MAP_COUNT as usize];
+            worldmap.tile_content = vec![Vec::new(); MAP_COUNT as usize];
             deleteme = Some(e);
         }
         for (e, _p, pos) in (&entities, &player, &position).join() {

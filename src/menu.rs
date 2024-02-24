@@ -16,7 +16,7 @@ pub enum MainMenuResult {
 }
 
 pub fn main_menu(ecs: &mut World, ctx: &mut Rltk) -> MainMenuResult {
-    let save_exists = super::saveload_system::does_save_exist();
+    let save_exists = crate::systems::saveload_system::does_save_exist();
     let runstate = ecs.fetch::<RunState>();
 
     ctx.print_color_centered(

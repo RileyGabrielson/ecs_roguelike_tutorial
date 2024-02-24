@@ -443,9 +443,18 @@ pub fn show_dead_screen(ctx: &mut Rltk) -> Option<bool> {
         RGB::named(rltk::BLACK),
         "YOU ARE DEAD",
     );
+    ctx.print_color_centered(
+        17,
+        RGB::named(rltk::WHITE),
+        RGB::named(rltk::BLACK),
+        "Press Enter to Continue",
+    );
 
     match ctx.key {
         None => None,
-        Some(_key) => Some(true),
+        Some(key) => match key {
+            VirtualKeyCode::Return => Some(true),
+            _ => None,
+        },
     }
 }
