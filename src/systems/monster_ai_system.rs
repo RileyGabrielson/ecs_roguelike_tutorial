@@ -1,4 +1,4 @@
-use crate::{components, Map, RunState};
+use crate::{components, systems::particle_system, Map, RunState};
 use rltk::Point;
 use specs::prelude::*;
 
@@ -13,11 +13,12 @@ impl<'a> System<'a> for MonsterAI {
         ReadExpect<'a, RunState>,
         Entities<'a>,
         WriteStorage<'a, components::Viewshed>,
-        ReadStorage<'a, components::Monster>,
+        WriteStorage<'a, components::Monster>,
         WriteStorage<'a, components::Position>,
         WriteStorage<'a, components::WantsToMelee>,
         ReadStorage<'a, components::Confusion>,
         ReadStorage<'a, components::Invisible>,
+        WriteExpect<'a, particle_system::ParticleBuilder>,
     );
 
     fn run(&mut self, data: Self::SystemData) {
@@ -28,25 +29,27 @@ impl<'a> System<'a> for MonsterAI {
             run_state,
             entities,
             mut viewshed,
-            monster,
+            mut monster,
             mut position,
             mut wants_to_melee,
             confused,
             invisible,
+            mut particle_builder,
         ) = data;
 
         if *run_state != RunState::MonsterTurn {
             return;
         };
 
-        for (entity, viewshed, _monster, pos) in
-            (&entities, &mut viewshed, &monster, &mut position).join()
+        for (entity, viewshed, monster, pos) in
+            (&entities, &mut viewshed, &mut monster, &mut position).join()
         {
             let mut can_act = true;
 
             let is_player_invisible = invisible.get(*player_entity);
             if let Some(_) = is_player_invisible {
                 can_act = false;
+                stop_target_player(&mut particle_builder, monster, pos.x, pos.y);
             }
 
             let is_confused = confused.get(entity);
@@ -66,6 +69,7 @@ impl<'a> System<'a> for MonsterAI {
                             },
                         )
                         .expect("Unable to insert attack");
+                    try_target_player(&mut particle_builder, monster, pos.x, pos.y);
                 } else if viewshed.visible_tiles.contains(&*player_pos) {
                     // Path to the player
                     let path = rltk::a_star_search(
@@ -83,8 +87,49 @@ impl<'a> System<'a> for MonsterAI {
                         map.blocked[idx] = true;
                         viewshed.dirty = true;
                     }
+                    try_target_player(&mut particle_builder, monster, pos.x, pos.y);
+                } else {
+                    stop_target_player(&mut particle_builder, monster, pos.x, pos.y);
                 }
             }
         }
+    }
+}
+
+fn try_target_player(
+    particle_builder: &mut particle_system::ParticleBuilder,
+    monster: &mut components::Monster,
+    x: i32,
+    y: i32,
+) {
+    if !monster.is_targeting_player {
+        monster.is_targeting_player = true;
+        particle_builder.request(
+            x,
+            y - 1,
+            rltk::RGB::named(rltk::YELLOW),
+            rltk::RGB::named(rltk::BLACK),
+            rltk::to_cp437('!'),
+            400.0,
+        )
+    }
+}
+
+fn stop_target_player(
+    particle_builder: &mut particle_system::ParticleBuilder,
+    monster: &mut components::Monster,
+    x: i32,
+    y: i32,
+) {
+    if monster.is_targeting_player {
+        monster.is_targeting_player = false;
+        particle_builder.request(
+            x,
+            y - 1,
+            rltk::RGB::named(rltk::GREY),
+            rltk::RGB::named(rltk::BLACK),
+            rltk::to_cp437('?'),
+            400.0,
+        )
     }
 }

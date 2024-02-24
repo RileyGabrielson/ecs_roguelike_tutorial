@@ -49,7 +49,9 @@ impl SufferDamage {
 }
 
 #[derive(Component, Debug, Serialize, Deserialize, Clone)]
-pub struct Monster {}
+pub struct Monster {
+    pub is_targeting_player: bool,
+}
 
 #[derive(Component, ConvertSaveload, Clone)]
 pub struct Position {
@@ -164,7 +166,7 @@ pub struct ActiveCooldown {
     pub turns_remaining: i32,
 }
 
-#[derive(Component, Serialize, Deserialize, Clone)]
+#[derive(Component, Debug, ConvertSaveload, Clone)]
 pub struct ParticleLifetime {
     pub lifetime_ms: f32,
 }

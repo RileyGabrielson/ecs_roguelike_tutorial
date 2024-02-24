@@ -30,9 +30,9 @@ dependencies = [
 
 [[package]]
 name = "anyhow"
-version = "1.0.79"
+version = "1.0.80"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "080e9890a082662b09c1ad45f567faeeb47f22b5fb23895fbe1e651e718e25ca"
+checksum = "5ad32ce52e4161730f7098c077cd2ed6229b5804ccf99e5366be1ab72a98b4e1"
 
 [[package]]
 name = "arrayref"
@@ -67,8 +67,7 @@ checksum = "0d8c1fef690941d3e7788d328517591fecc684c084084702d6ff1641e993699a"
 [[package]]
 name = "bracket-algorithm-traits"
 version = "0.8.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4a13fb98ac33e6cd03fc035d8503f8a80b38c523737c9f84b400a4b9e065cfd3"
+source = "git+https://github.com/amethyst/bracket-lib#0d2d5e6a9a8e7c7ae3710cfef85be4cab0109a27"
 dependencies = [
  "bracket-geometry",
  "smallvec",
@@ -77,8 +76,7 @@ dependencies = [
 [[package]]
 name = "bracket-color"
 version = "0.8.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7333827cf727ceb302cc4f638cc8befc87f5f1423873255d94cc0a24009e940a"
+source = "git+https://github.com/amethyst/bracket-lib#0d2d5e6a9a8e7c7ae3710cfef85be4cab0109a27"
 dependencies = [
  "lazy_static",
  "parking_lot 0.12.1",
@@ -88,8 +86,7 @@ dependencies = [
 [[package]]
 name = "bracket-embedding"
 version = "0.8.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c1cb6747f25903066109a619e3d580ef5ff7b3ffc281fa51ece473e1396e2298"
+source = "git+https://github.com/amethyst/bracket-lib#0d2d5e6a9a8e7c7ae3710cfef85be4cab0109a27"
 dependencies = [
  "lazy_static",
  "parking_lot 0.12.1",
@@ -98,8 +95,7 @@ dependencies = [
 [[package]]
 name = "bracket-geometry"
 version = "0.8.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0f31b525fcd65027885f3a1e3a250a5dd397d70de4a6a5a125f03e0bef951499"
+source = "git+https://github.com/amethyst/bracket-lib#0d2d5e6a9a8e7c7ae3710cfef85be4cab0109a27"
 dependencies = [
  "serde",
  "ultraviolet",
@@ -108,8 +104,7 @@ dependencies = [
 [[package]]
 name = "bracket-lib"
 version = "0.8.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "43bbe13e39628e7f73673737c825001494dee7329cee8ee79dfeaa7cfd136dbf"
+source = "git+https://github.com/amethyst/bracket-lib#0d2d5e6a9a8e7c7ae3710cfef85be4cab0109a27"
 dependencies = [
  "bracket-algorithm-traits",
  "bracket-color",
@@ -123,8 +118,7 @@ dependencies = [
 [[package]]
 name = "bracket-noise"
 version = "0.8.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f0b7443d0990c69db7a83f376f0101d684c20a911698e5f932bffbda2c8b08dd"
+source = "git+https://github.com/amethyst/bracket-lib#0d2d5e6a9a8e7c7ae3710cfef85be4cab0109a27"
 dependencies = [
  "bracket-random",
 ]
@@ -132,8 +126,7 @@ dependencies = [
 [[package]]
 name = "bracket-pathfinding"
 version = "0.8.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "32ae7f2ebf242316ba10e84ca3b31af064b8c0c77402b2171a3104a2a77718fc"
+source = "git+https://github.com/amethyst/bracket-lib#0d2d5e6a9a8e7c7ae3710cfef85be4cab0109a27"
 dependencies = [
  "bracket-algorithm-traits",
  "bracket-geometry",
@@ -144,8 +137,7 @@ dependencies = [
 [[package]]
 name = "bracket-random"
 version = "0.8.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "437be61484077b1ddb57002ce3c96b7d03cbf500b5d15157ee7e67e22332c39b"
+source = "git+https://github.com/amethyst/bracket-lib#0d2d5e6a9a8e7c7ae3710cfef85be4cab0109a27"
 dependencies = [
  "getrandom",
  "js-sys",
@@ -160,8 +152,7 @@ dependencies = [
 [[package]]
 name = "bracket-rex"
 version = "0.8.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c4735d15070b98d0f07360d62914d1524679325019cae46c7af73637a6ef196a"
+source = "git+https://github.com/amethyst/bracket-lib#0d2d5e6a9a8e7c7ae3710cfef85be4cab0109a27"
 dependencies = [
  "bracket-color",
  "bracket-embedding",
@@ -172,8 +163,7 @@ dependencies = [
 [[package]]
 name = "bracket-terminal"
 version = "0.8.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2493063cb676e2e9e3a3a630eee032a297e43c8a1cee08c94feaad3344ed0b46"
+source = "git+https://github.com/amethyst/bracket-lib#0d2d5e6a9a8e7c7ae3710cfef85be4cab0109a27"
 dependencies = [
  "anyhow",
  "bracket-color",
@@ -198,9 +188,9 @@ dependencies = [
 
 [[package]]
 name = "bumpalo"
-version = "3.15.0"
+version = "3.15.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d32a994c2b3ca201d9b263612a374263f05e7adde37c4707f693dcd375076d1f"
+checksum = "8ea184aa71bb362a1157c896979544cc23974e08fd265f29ea96b59f0b4a555b"
 
 [[package]]
 name = "bytemuck"
@@ -240,12 +230,9 @@ dependencies = [
 
 [[package]]
 name = "cc"
-version = "1.0.83"
+version = "1.0.87"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f1174fb0b6ec23863f8b971027804a42614e347eafb0a95bf0b12cdae21fc4d0"
-dependencies = [
- "libc",
-]
+checksum = "3286b845d0fccbdd15af433f61c5970e711987036cb468f437ff6badd70f4e24"
 
 [[package]]
 name = "cfg-if"
@@ -683,7 +670,7 @@ checksum = "1a5c6c585bc94aaf2c7b51dd4c2ba22680844aba4c687be581871a6f518c5742"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.48",
+ "syn 2.0.50",
 ]
 
 [[package]]
@@ -857,9 +844,9 @@ checksum = "b9e0384b61958566e926dc50660321d12159025e767c18e043daf26b70104c39"
 
 [[package]]
 name = "image"
-version = "0.24.8"
+version = "0.24.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "034bbe799d1909622a74d1193aa50147769440040ff36cb2baa947609b0a4e23"
+checksum = "5690139d2f55868e080017335e4b94cb7414274c74f1669c84fb5feba2c9f69d"
 dependencies = [
  "bytemuck",
  "byteorder",
@@ -1333,9 +1320,9 @@ checksum = "d231b230927b5e4ad203db57bbcbee2802f6bce620b1e4a9024a07d94e2907ec"
 
 [[package]]
 name = "png"
-version = "0.17.11"
+version = "0.17.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1f6c3c3e617595665b8ea2ff95a86066be38fb121ff920a9c0eb282abcd1da5a"
+checksum = "06e4b0d3d1312775e782c86c91a111aa1f910cbb65e1337f9975b5f9a554b5e1"
 dependencies = [
  "bitflags",
  "crc32fast",
@@ -1482,8 +1469,7 @@ checksum = "c08c74e62047bb2de4ff487b251e4a92e24f48745648451635cec7d591162d9f"
 [[package]]
 name = "rltk"
 version = "0.8.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "30587bc9361fc5600650d17ad6b9a91bb6a290f9d06a434dc48198d22ead7543"
+source = "git+https://github.com/amethyst/bracket-lib#0d2d5e6a9a8e7c7ae3710cfef85be4cab0109a27"
 dependencies = [
  "bracket-lib",
 ]
@@ -1544,29 +1530,29 @@ checksum = "a0eddf2e8f50ced781f288c19f18621fa72a3779e3cb58dbf23b07469b0abeb4"
 
 [[package]]
 name = "serde"
-version = "1.0.196"
+version = "1.0.197"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "870026e60fa08c69f064aa766c10f10b1d62db9ccd4d0abb206472bee0ce3b32"
+checksum = "3fb1c873e1b9b056a4dc4c0c198b24c3ffa059243875552b2bd0933b1aee4ce2"
 dependencies = [
  "serde_derive",
 ]
 
 [[package]]
 name = "serde_derive"
-version = "1.0.196"
+version = "1.0.197"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "33c85360c95e7d137454dc81d9a4ed2b8efd8fbe19cee57357b32b9771fccb67"
+checksum = "7eb0b34b42edc17f6b7cac84a52a1c5f0e1bb2227e997ca9011ea3dd34e8610b"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.48",
+ "syn 2.0.50",
 ]
 
 [[package]]
 name = "serde_json"
-version = "1.0.113"
+version = "1.0.114"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "69801b70b1c3dac963ecb03a364ba0ceda9cf60c71cfe475e99864759c8b8a79"
+checksum = "c5f09b1bd632ef549eaa9f60a1f8de742bdbc698e6cee2095fc84dde5f549ae0"
 dependencies = [
  "itoa",
  "ryu",
@@ -1739,9 +1725,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "2.0.48"
+version = "2.0.50"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0f3531638e407dfc0814761abb7c00a5b54992b849452a0646b7f65c9f770f3f"
+checksum = "74f1bdc9872430ce9b75da68329d1c1746faf50ffac5f19e02b71e37ff881ffb"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1765,7 +1751,7 @@ checksum = "a953cb265bef375dae3de6663da4d3804eee9682ea80d8e2542529b73c531c81"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.48",
+ "syn 2.0.50",
 ]
 
 [[package]]
@@ -1901,7 +1887,7 @@ dependencies = [
  "once_cell",
  "proc-macro2",
  "quote",
- "syn 2.0.48",
+ "syn 2.0.50",
  "wasm-bindgen-shared",
 ]
 
@@ -1923,7 +1909,7 @@ checksum = "642f325be6301eb8107a83d12a8ac6c1e1c54345a7ef1a9261962dfefda09e66"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.48",
+ "syn 2.0.50",
  "wasm-bindgen-backend",
  "wasm-bindgen-shared",
 ]

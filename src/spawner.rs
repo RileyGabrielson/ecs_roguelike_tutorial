@@ -164,10 +164,12 @@ fn monster<S: ToString>(ecs: &mut World, x: i32, y: i32, glyph: rltk::FontCharTy
         })
         .with(components::Viewshed {
             visible_tiles: Vec::new(),
-            range: 8,
+            range: 5,
             dirty: true,
         })
-        .with(components::Monster {})
+        .with(components::Monster {
+            is_targeting_player: false,
+        })
         .with(components::Name {
             name: name.to_string(),
         })
