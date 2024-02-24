@@ -71,7 +71,13 @@ pub fn save_game(ecs: &mut World) {
             WantsToPickupItem,
             WantsToUseItem,
             WantsToDropItem,
-            SerializationHelper
+            SerializationHelper,
+            Invisible,
+            WantsBeInvisible,
+            AppliesInvisiblity,
+            Cooldown,
+            ActiveCooldown,
+            CausesConfusion
         );
     }
 
@@ -146,7 +152,13 @@ pub fn load_game(ecs: &mut World) {
             WantsToPickupItem,
             WantsToUseItem,
             WantsToDropItem,
-            SerializationHelper
+            SerializationHelper,
+            Invisible,
+            WantsBeInvisible,
+            AppliesInvisiblity,
+            Cooldown,
+            ActiveCooldown,
+            CausesConfusion
         );
     }
 

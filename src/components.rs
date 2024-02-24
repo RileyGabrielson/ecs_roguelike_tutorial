@@ -121,6 +121,11 @@ pub struct AreaOfEffect {
 }
 
 #[derive(Component, Debug, ConvertSaveload, Clone)]
+pub struct CausesConfusion {
+    pub turns: i32,
+}
+
+#[derive(Component, Debug, ConvertSaveload, Clone)]
 pub struct Confusion {
     pub turns: i32,
 }
@@ -131,4 +136,30 @@ pub struct SerializeMe;
 #[derive(Component, Serialize, Deserialize, Clone)]
 pub struct SerializationHelper {
     pub map: super::map::Map,
+}
+
+#[derive(Component, Debug, ConvertSaveload, Clone)]
+pub struct Invisible {
+    pub turns: i32,
+}
+
+#[derive(Component, Debug, ConvertSaveload, Clone)]
+pub struct WantsBeInvisible {
+    pub entity: Entity,
+    pub turns: i32,
+}
+
+#[derive(Component, Debug, ConvertSaveload, Clone)]
+pub struct AppliesInvisiblity {
+    pub turns: i32,
+}
+
+#[derive(Component, Debug, ConvertSaveload, Clone)]
+pub struct Cooldown {
+    pub turns: i32,
+}
+
+#[derive(Component, Debug, ConvertSaveload, Clone)]
+pub struct ActiveCooldown {
+    pub turns_remaining: i32,
 }

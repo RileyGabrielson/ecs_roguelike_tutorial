@@ -1,4 +1,4 @@
-use super::{Confusion, Map, Monster, Position, RunState, Viewshed, WantsToMelee};
+use super::{components, Map, RunState};
 use rltk::Point;
 use specs::prelude::*;
 
@@ -12,11 +12,12 @@ impl<'a> System<'a> for MonsterAI {
         ReadExpect<'a, Entity>,
         ReadExpect<'a, RunState>,
         Entities<'a>,
-        WriteStorage<'a, Viewshed>,
-        ReadStorage<'a, Monster>,
-        WriteStorage<'a, Position>,
-        WriteStorage<'a, WantsToMelee>,
-        WriteStorage<'a, Confusion>,
+        WriteStorage<'a, components::Viewshed>,
+        ReadStorage<'a, components::Monster>,
+        WriteStorage<'a, components::Position>,
+        WriteStorage<'a, components::WantsToMelee>,
+        ReadStorage<'a, components::Confusion>,
+        ReadStorage<'a, components::Invisible>,
     );
 
     fn run(&mut self, data: Self::SystemData) {
@@ -30,7 +31,8 @@ impl<'a> System<'a> for MonsterAI {
             monster,
             mut position,
             mut wants_to_melee,
-            mut confused,
+            confused,
+            invisible,
         ) = data;
 
         if *run_state != RunState::MonsterTurn {
@@ -42,12 +44,13 @@ impl<'a> System<'a> for MonsterAI {
         {
             let mut can_act = true;
 
-            let is_confused = confused.get_mut(entity);
-            if let Some(i_am_confused) = is_confused {
-                i_am_confused.turns -= 1;
-                if i_am_confused.turns < 1 {
-                    confused.remove(entity);
-                }
+            let is_player_invisible = invisible.get(*player_entity);
+            if let Some(_) = is_player_invisible {
+                can_act = false;
+            }
+
+            let is_confused = confused.get(entity);
+            if let Some(_) = is_confused {
                 can_act = false;
             }
 
@@ -58,7 +61,7 @@ impl<'a> System<'a> for MonsterAI {
                     wants_to_melee
                         .insert(
                             entity,
-                            WantsToMelee {
+                            components::WantsToMelee {
                                 target: *player_entity,
                             },
                         )
@@ -70,6 +73,7 @@ impl<'a> System<'a> for MonsterAI {
                         map.xy_idx(player_pos.x, player_pos.y),
                         &mut *map,
                     );
+
                     if path.success && path.steps.len() > 1 {
                         let mut idx = map.xy_idx(pos.x, pos.y);
                         map.blocked[idx] = false;

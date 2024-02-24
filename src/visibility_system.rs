@@ -1,4 +1,4 @@
-use super::{Map, Player, Position, Viewshed};
+use super::{components, Map};
 use rltk::{field_of_view, Point};
 use specs::prelude::*;
 
@@ -8,9 +8,9 @@ impl<'a> System<'a> for VisibilitySystem {
     type SystemData = (
         WriteExpect<'a, Map>,
         Entities<'a>,
-        WriteStorage<'a, Viewshed>,
-        WriteStorage<'a, Position>,
-        ReadStorage<'a, Player>,
+        WriteStorage<'a, components::Viewshed>,
+        WriteStorage<'a, components::Position>,
+        ReadStorage<'a, components::Player>,
     );
 
     fn run(&mut self, data: Self::SystemData) {
@@ -27,7 +27,7 @@ impl<'a> System<'a> for VisibilitySystem {
                     .retain(|p| p.x >= 0 && p.x < map.width && p.y >= 0 && p.y < map.height);
 
                 // If this is the player, reveal what they can see
-                let _p: Option<&Player> = player.get(entity);
+                let _p: Option<&components::Player> = player.get(entity);
                 if let Some(_p) = _p {
                     for t in map.visible_tiles.iter_mut() {
                         *t = false
