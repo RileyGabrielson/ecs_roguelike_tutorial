@@ -205,3 +205,22 @@ pub struct WantsToRemoveItem {
 
 #[derive(Component, Debug, Serialize, Deserialize, Clone)]
 pub struct MagicMapper {}
+
+#[derive(Serialize, Deserialize, Copy, Clone, PartialEq, Debug)]
+pub enum HungerState {
+    WellFed,
+    Normal,
+    Hungry,
+    Starving,
+}
+
+#[derive(Component, Serialize, Deserialize, Clone)]
+pub struct HungerClock {
+    pub state: HungerState,
+    pub total_nutrition: i32,
+}
+
+#[derive(Component, ConvertSaveload, Clone, Debug)]
+pub struct Food {
+    pub nutrition: i32,
+}

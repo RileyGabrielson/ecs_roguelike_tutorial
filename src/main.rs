@@ -523,6 +523,8 @@ fn main() -> rltk::BError {
     gs.ecs.register::<components::DefenseBonus>();
     gs.ecs.register::<components::WantsToRemoveItem>();
     gs.ecs.register::<components::MagicMapper>();
+    gs.ecs.register::<components::HungerClock>();
+    gs.ecs.register::<components::Food>();
 
     add_new_world_details(&mut gs.ecs);
 

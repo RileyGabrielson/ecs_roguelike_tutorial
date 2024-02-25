@@ -1,4 +1,7 @@
-use crate::{components::*, random_table::RandomTable, Rect, MAP_WIDTH};
+use crate::{
+    components::*, random_table::RandomTable, systems::hunger_system::WELL_FED_NUTRITION, Rect,
+    MAP_WIDTH,
+};
 use rltk::{RandomNumberGenerator, RGB};
 use specs::prelude::*;
 use specs::saveload::{MarkedBuilder, SimpleMarker};
@@ -50,6 +53,7 @@ pub fn spawn_room(ecs: &mut World, room: &Rect, map_depth: i32) {
             "Longsword" => longsword(ecs, x, y),
             "Tower Shield" => tower_shield(ecs, x, y),
             "Magic Mapping Scroll" => magic_mapping_scroll(ecs, x, y),
+            "Rations" => rations(ecs, x, y),
             _ => {}
         }
     }
@@ -82,6 +86,10 @@ pub fn player(ecs: &mut World, player_x: i32, player_y: i32) -> Entity {
             hp: 30,
             defense: 2,
             power: 5,
+        })
+        .with(HungerClock {
+            state: HungerState::WellFed,
+            total_nutrition: WELL_FED_NUTRITION,
         })
         .marked::<SimpleMarker<SerializeMe>>()
         .build();
@@ -347,6 +355,25 @@ fn magic_mapping_scroll(ecs: &mut World, x: i32, y: i32) {
         .build();
 }
 
+fn rations(ecs: &mut World, x: i32, y: i32) {
+    ecs.create_entity()
+        .with(Position { x, y })
+        .with(Renderable {
+            glyph: rltk::to_cp437('%'),
+            fg: RGB::named(rltk::GREEN),
+            bg: RGB::named(rltk::BLACK),
+            layer: ITEM_LAYER,
+        })
+        .with(Name {
+            name: "Rations".to_string(),
+        })
+        .with(Item {})
+        .with(Food { nutrition: 350 })
+        .with(Consumable {})
+        .marked::<SimpleMarker<SerializeMe>>()
+        .build();
+}
+
 fn room_table(map_depth: i32) -> RandomTable {
     RandomTable::new()
         .add("Goblin", 10)
@@ -360,4 +387,5 @@ fn room_table(map_depth: i32) -> RandomTable {
         .add("Longsword", map_depth - 1)
         .add("Tower Shield", map_depth - 1)
         .add("Magic Mapping Scroll", 2)
+        .add("Rations", 10)
 }

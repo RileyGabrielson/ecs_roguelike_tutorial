@@ -85,7 +85,9 @@ pub fn save_game(ecs: &mut World) {
             MeleePowerBonus,
             DefenseBonus,
             WantsToRemoveItem,
-            MagicMapper
+            MagicMapper,
+            HungerClock,
+            Food
         );
     }
 
@@ -173,7 +175,9 @@ pub fn load_game(ecs: &mut World) {
             MeleePowerBonus,
             DefenseBonus,
             WantsToRemoveItem,
-            MagicMapper
+            MagicMapper,
+            HungerClock,
+            Food
         );
     }
 

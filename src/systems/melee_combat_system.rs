@@ -17,6 +17,7 @@ impl<'a> System<'a> for MeleeCombatSystem {
         ReadStorage<'a, components::MeleePowerBonus>,
         ReadStorage<'a, components::DefenseBonus>,
         ReadStorage<'a, components::Equipped>,
+        ReadStorage<'a, components::HungerClock>,
     );
 
     fn run(&mut self, data: Self::SystemData) {
@@ -33,6 +34,7 @@ impl<'a> System<'a> for MeleeCombatSystem {
             melee_power_bonuses,
             defense_bonuses,
             equipped,
+            hunger_clocks,
         ) = data;
 
         for (entity, wants_melee, name, stats) in
@@ -56,6 +58,13 @@ impl<'a> System<'a> for MeleeCombatSystem {
                     }
                 }
 
+                let hc = hunger_clocks.get(entity);
+                if let Some(hc) = hc {
+                    if hc.state == components::HungerState::WellFed {
+                        offensive_bonus += 1;
+                    }
+                }
+
                 let pos = positions.get(wants_melee.target);
                 if let Some(pos) = pos {
                     particle_builder.request(
@@ -67,6 +76,7 @@ impl<'a> System<'a> for MeleeCombatSystem {
                         130.0,
                     );
                 }
+
                 let target_stats = combat_stats.get(wants_melee.target).unwrap();
                 if target_stats.hp > 0 {
                     let target_name = names.get(wants_melee.target).unwrap();

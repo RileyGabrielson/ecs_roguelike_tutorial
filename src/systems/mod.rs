@@ -2,6 +2,7 @@ use specs::prelude::*;
 
 pub mod damage_system;
 pub mod duration_system;
+pub mod hunger_system;
 pub mod inventory_system;
 pub mod map_indexing_system;
 pub mod melee_combat_system;
@@ -47,6 +48,9 @@ pub fn run_systems(ecs: &mut World) {
 
     let mut status_effects = particle_system::ParticleSpawnSystem {};
     status_effects.run_now(ecs);
+
+    let mut hunger = hunger_system::HungerSystem {};
+    hunger.run_now(ecs);
 
     ecs.maintain();
 }

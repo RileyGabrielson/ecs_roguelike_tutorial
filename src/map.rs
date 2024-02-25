@@ -220,7 +220,7 @@ pub fn draw_map(ecs: &World, ctx: &mut Rltk) {
                 }
                 TileType::DownStairs => {
                     glyph = rltk::to_cp437('>');
-                    fg = RGB::from_f32(0., 1.0, 1.0);
+                    fg = RGB::from_f32(0., 1.0, 0.);
                 }
             }
             if map.bloodstains.contains(&idx) {

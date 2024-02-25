@@ -15,8 +15,9 @@ pub fn draw_ui(ecs: &World, ctx: &mut Rltk) {
     let map = ecs.fetch::<Map>();
     let combat_stats = ecs.read_storage::<components::CombatStats>();
     let players = ecs.read_storage::<components::Player>();
+    let hunger = ecs.read_storage::<components::HungerClock>();
 
-    for (_player, stats) in (&players, &combat_stats).join() {
+    for (_player, stats, hunger_clock) in (&players, &combat_stats, &hunger).join() {
         let health = format!(" HP: {} / {} ", stats.hp, stats.max_hp);
         ctx.print_color(
             2,
@@ -42,6 +43,31 @@ pub fn draw_ui(ecs: &World, ctx: &mut Rltk) {
             RGB::named(rltk::RED),
             RGB::named(rltk::BLACK),
         );
+
+        match hunger_clock.state {
+            components::HungerState::WellFed => ctx.print_color(
+                71,
+                42,
+                RGB::named(rltk::GREEN),
+                RGB::named(rltk::BLACK),
+                "Well Fed",
+            ),
+            components::HungerState::Normal => {}
+            components::HungerState::Hungry => ctx.print_color(
+                71,
+                42,
+                RGB::named(rltk::ORANGE),
+                RGB::named(rltk::BLACK),
+                "Hungry",
+            ),
+            components::HungerState::Starving => ctx.print_color(
+                71,
+                42,
+                RGB::named(rltk::RED),
+                RGB::named(rltk::BLACK),
+                "Starving",
+            ),
+        }
     }
 
     let log = ecs.fetch::<GameLog>();
@@ -85,13 +111,14 @@ fn draw_tooltips(ecs: &World, ctx: &mut Rltk) {
     let map = ecs.fetch::<Map>();
     let names = ecs.read_storage::<components::Name>();
     let positions = ecs.read_storage::<components::Position>();
+    let invisible = ecs.read_storage::<components::Invisible>();
 
     let mouse_pos = ctx.mouse_pos();
     if mouse_pos.0 >= map.width || mouse_pos.1 >= map.height {
         return;
     }
     let mut tooltip: Vec<String> = Vec::new();
-    for (name, position) in (&names, &positions).join() {
+    for (name, position, _) in (&names, &positions, !&invisible).join() {
         let idx = map.xy_idx(position.x, position.y);
         if position.x == mouse_pos.0 && position.y == mouse_pos.1 && map.visible_tiles[idx] {
             tooltip.push(name.name.to_string());

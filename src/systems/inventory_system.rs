@@ -44,10 +44,11 @@ impl<'a> System<'a> for ItemCollectionSystem {
 pub struct ItemUseSystem {}
 
 impl<'a> System<'a> for ItemUseSystem {
+    #[allow(clippy::type_complexity)]
     type SystemData = (
         ReadExpect<'a, Entity>,
         WriteExpect<'a, GameLog>,
-        WriteExpect<'a, Map>,
+        ReadExpect<'a, Map>,
         Entities<'a>,
         WriteStorage<'a, components::WantsToUseItem>,
         ReadStorage<'a, components::Name>,
@@ -57,8 +58,8 @@ impl<'a> System<'a> for ItemUseSystem {
         WriteStorage<'a, components::CombatStats>,
         WriteStorage<'a, components::SufferDamage>,
         ReadStorage<'a, components::AreaOfEffect>,
-        ReadStorage<'a, components::CausesConfusion>,
-        WriteStorage<'a, components::Confusion>,
+        // ReadStorage<'a, components::CausesConfusion>,
+        // WriteStorage<'a, components::Confusion>,
         ReadStorage<'a, components::AppliesInvisiblity>,
         WriteStorage<'a, components::WantsBeInvisible>,
         ReadStorage<'a, components::Cooldown>,
@@ -70,13 +71,15 @@ impl<'a> System<'a> for ItemUseSystem {
         WriteStorage<'a, components::InInventory>,
         ReadStorage<'a, components::MagicMapper>,
         WriteExpect<'a, RunState>,
+        ReadStorage<'a, components::Food>,
+        WriteStorage<'a, components::HungerClock>,
     );
 
     fn run(&mut self, data: Self::SystemData) {
         let (
             player_entity,
             mut gamelog,
-            mut map,
+            map,
             entities,
             mut wants_use,
             names,
@@ -86,8 +89,8 @@ impl<'a> System<'a> for ItemUseSystem {
             mut combat_stats,
             mut suffer_damage,
             aoe,
-            causes_confusion,
-            mut confused,
+            // causes_confusion,
+            // mut confused,
             applies_invisibility,
             mut wants_be_invisible,
             cooldowns,
@@ -99,6 +102,8 @@ impl<'a> System<'a> for ItemUseSystem {
             mut inventory,
             magic_mapper,
             mut run_state,
+            food,
+            mut hunger_clocks,
         ) = data;
 
         for (entity, use_item) in (&entities, &wants_use).join() {
@@ -210,6 +215,24 @@ impl<'a> System<'a> for ItemUseSystem {
                         if target == *player_entity {
                             gamelog.entries.push(format!(
                                 "You equip {}.",
+                                names.get(use_item.item).unwrap().name
+                            ));
+                        }
+                    }
+                }
+
+                // It it is edible, eat it!
+                let item_edible = food.get(use_item.item);
+                match item_edible {
+                    None => {}
+                    Some(food_item) => {
+                        used_item = true;
+                        let target = targets[0];
+                        let hunger_clock = hunger_clocks.get_mut(target);
+                        if let Some(hunger_clock) = hunger_clock {
+                            hunger_clock.total_nutrition += food_item.nutrition;
+                            gamelog.entries.push(format!(
+                                "You eat the {}.",
                                 names.get(use_item.item).unwrap().name
                             ));
                         }
@@ -331,50 +354,50 @@ impl<'a> System<'a> for ItemUseSystem {
                 }
 
                 // Can it pass along confusion?
-                let mut add_confusion = Vec::new();
-                {
-                    let item_causes_confusion = causes_confusion.get(use_item.item);
-                    match item_causes_confusion {
-                        None => {}
-                        Some(confusion) => {
-                            used_item = false;
-                            for mob in targets.iter() {
-                                add_confusion.push((*mob, confusion.turns));
-                                if entity == *player_entity {
-                                    let mob_name = names.get(*mob).unwrap();
-                                    let item_name = names.get(use_item.item).unwrap();
-                                    gamelog.entries.push(format!(
-                                        "You use {} on {}, confusing them.",
-                                        item_name.name, mob_name.name
-                                    ));
+                //     let mut add_confusion = Vec::new();
+                //     {
+                //         let item_causes_confusion = causes_confusion.get(use_item.item);
+                //         match item_causes_confusion {
+                //             None => {}
+                //             Some(confusion) => {
+                //                 used_item = false;
+                //                 for mob in targets.iter() {
+                //                     add_confusion.push((*mob, confusion.turns));
+                //                     if entity == *player_entity {
+                //                         let mob_name = names.get(*mob).unwrap();
+                //                         let item_name = names.get(use_item.item).unwrap();
+                //                         gamelog.entries.push(format!(
+                //                             "You use {} on {}, confusing them.",
+                //                             item_name.name, mob_name.name
+                //                         ));
 
-                                    let pos = positions.get(*mob);
-                                    if let Some(pos) = pos {
-                                        particle_builder.request(
-                                            pos.x,
-                                            pos.y,
-                                            rltk::RGB::named(rltk::MAGENTA),
-                                            rltk::RGB::named(rltk::BLACK),
-                                            rltk::to_cp437('?'),
-                                            400.0,
-                                        );
-                                    }
-                                }
-                                used_item = true;
-                            }
-                        }
-                    }
-                }
-                for (mob_entity, remaining_turns) in add_confusion.iter() {
-                    confused
-                        .insert(
-                            *mob_entity,
-                            components::Confusion {
-                                turns: *remaining_turns,
-                            },
-                        )
-                        .expect("Unable to insert status");
-                }
+                //                         let pos = positions.get(*mob);
+                //                         if let Some(pos) = pos {
+                //                             particle_builder.request(
+                //                                 pos.x,
+                //                                 pos.y,
+                //                                 rltk::RGB::named(rltk::MAGENTA),
+                //                                 rltk::RGB::named(rltk::BLACK),
+                //                                 rltk::to_cp437('?'),
+                //                                 400.0,
+                //                             );
+                //                         }
+                //                     }
+                //                     used_item = true;
+                //                 }
+                //             }
+                //         }
+                //     }
+                //     for (mob_entity, remaining_turns) in add_confusion.iter() {
+                //         confused
+                //             .insert(
+                //                 *mob_entity,
+                //                 components::Confusion {
+                //                     turns: *remaining_turns,
+                //                 },
+                //             )
+                //             .expect("Unable to insert status");
+                //     }
             }
 
             if used_item {
