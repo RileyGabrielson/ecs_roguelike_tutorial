@@ -115,6 +115,7 @@ pub fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
     let combat_stats = ecs.read_storage::<components::CombatStats>();
     let entities = ecs.entities();
     let mut wants_to_melee = ecs.write_storage::<components::WantsToMelee>();
+    let mut entity_moved = ecs.write_storage::<components::EntityMoved>();
     let map = ecs.fetch::<map::Map>();
 
     for (entity, _player, pos, viewshed) in
@@ -150,6 +151,10 @@ pub fn try_move_player(delta_x: i32, delta_y: i32, ecs: &mut World) {
             let mut ppos = ecs.write_resource::<Point>();
             ppos.x = pos.x;
             ppos.y = pos.y;
+
+            entity_moved
+                .insert(entity, components::EntityMoved {})
+                .expect("Failed to insert entity moved");
         }
     }
 }

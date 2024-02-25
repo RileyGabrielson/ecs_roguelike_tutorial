@@ -18,7 +18,7 @@ impl<'a> System<'a> for StatusEffectsSystem {
                 .insert(
                     wants_invisible.entity,
                     components::Invisible {
-                        turns: wants_invisible.turns,
+                        turns: Some(wants_invisible.turns),
                     },
                 )
                 .expect("Failed to insert invisiblity");

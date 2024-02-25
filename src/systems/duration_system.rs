@@ -22,9 +22,14 @@ impl<'a> System<'a> for DurationSystem {
         let mut entities_to_remove: Vec<Entity> = vec![];
         {
             for (entity, invisible) in (&entities, &mut invisibles).join() {
-                invisible.turns -= 1;
-                if invisible.turns < 1 {
-                    entities_to_remove.push(entity);
+                match invisible.turns {
+                    None => {}
+                    Some(num_turns) => {
+                        invisible.turns = Some(num_turns - 1);
+                        if num_turns <= 1 {
+                            entities_to_remove.push(entity);
+                        }
+                    }
                 }
             }
         }

@@ -71,8 +71,6 @@ impl<'a> System<'a> for HungerSystem {
                     clock.state = HungerState::Hungry;
                     if entity == *player_entity {
                         log.entries.push("You are hungry.".to_string());
-                        log.entries
-                            .push(format!("nutrition: {}", clock.total_nutrition));
                     }
                 } else if in_range(clock.total_nutrition, -10000, STARVING_NUTRITION)
                     && clock.state != HungerState::Starving

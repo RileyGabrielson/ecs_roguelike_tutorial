@@ -96,7 +96,7 @@ fn show_statuses(ecs: &World, ctx: &mut Rltk) {
     let cur_x = 2;
 
     if let Some(invisibility) = is_invisible {
-        let invisible_string = format!("Invisible ({})", invisibility.turns);
+        let invisible_string = format!("Invisible ({})", invisibility.turns.unwrap_or(0));
         ctx.print_color(
             cur_x,
             49,

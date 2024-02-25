@@ -10,6 +10,7 @@ pub mod monster_ai_system;
 pub mod particle_system;
 pub mod saveload_system;
 pub mod status_effects_system;
+pub mod trigger_system;
 pub mod visibility_system;
 
 pub fn run_systems(ecs: &mut World) {
@@ -18,6 +19,9 @@ pub fn run_systems(ecs: &mut World) {
 
     let mut monster_ai = monster_ai_system::MonsterAI {};
     monster_ai.run_now(ecs);
+
+    let mut triggers = trigger_system::TriggerSystem {};
+    triggers.run_now(ecs);
 
     let mut map_indexing = map_indexing_system::MapIndexingSystem {};
     map_indexing.run_now(ecs);

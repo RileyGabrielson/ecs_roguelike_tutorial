@@ -142,7 +142,7 @@ pub struct SerializationHelper {
 
 #[derive(Component, Debug, ConvertSaveload, Clone)]
 pub struct Invisible {
-    pub turns: i32,
+    pub turns: Option<i32>,
 }
 
 #[derive(Component, Debug, ConvertSaveload, Clone)]
@@ -224,3 +224,12 @@ pub struct HungerClock {
 pub struct Food {
     pub nutrition: i32,
 }
+
+#[derive(Component, Debug, Serialize, Deserialize, Clone)]
+pub struct EntryTrigger {}
+
+#[derive(Component, Debug, Serialize, Deserialize, Clone)]
+pub struct EntityMoved {}
+
+#[derive(Component, Debug, Serialize, Deserialize, Clone)]
+pub struct SingleActivation {}

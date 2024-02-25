@@ -8,8 +8,10 @@ use specs::saveload::{MarkedBuilder, SimpleMarker};
 use std::collections::HashMap;
 
 const MAX_ROOM_SPAWNS: i32 = 4;
+
 const ITEM_LAYER: i32 = 5;
-const CHARACTER_LAYER: i32 = 4;
+const TRAP_LAYER: i32 = 4;
+const CHARACTER_LAYER: i32 = 3;
 
 pub fn spawn_room(ecs: &mut World, room: &Rect, map_depth: i32) {
     let spawn_table = room_table(map_depth);
@@ -36,7 +38,6 @@ pub fn spawn_room(ecs: &mut World, room: &Rect, map_depth: i32) {
         }
     }
 
-    // Actually spawn the things
     for spawn in spawn_points.iter() {
         let x = (*spawn.0 % MAP_WIDTH as usize) as i32;
         let y = (*spawn.0 / MAP_WIDTH as usize) as i32;
@@ -54,6 +55,7 @@ pub fn spawn_room(ecs: &mut World, room: &Rect, map_depth: i32) {
             "Tower Shield" => tower_shield(ecs, x, y),
             "Magic Mapping Scroll" => magic_mapping_scroll(ecs, x, y),
             "Rations" => rations(ecs, x, y),
+            "Bear Trap" => bear_trap(ecs, x, y),
             _ => {}
         }
     }
@@ -374,6 +376,26 @@ fn rations(ecs: &mut World, x: i32, y: i32) {
         .build();
 }
 
+fn bear_trap(ecs: &mut World, x: i32, y: i32) {
+    ecs.create_entity()
+        .with(Position { x, y })
+        .with(Renderable {
+            glyph: rltk::to_cp437('^'),
+            fg: RGB::named(rltk::RED),
+            bg: RGB::named(rltk::BLACK),
+            layer: TRAP_LAYER,
+        })
+        .with(Name {
+            name: "Bear Trap".to_string(),
+        })
+        .with(Invisible { turns: None })
+        .with(InflictsDamage { damage: 6 })
+        .with(EntryTrigger {})
+        .with(SingleActivation {})
+        .marked::<SimpleMarker<SerializeMe>>()
+        .build();
+}
+
 fn room_table(map_depth: i32) -> RandomTable {
     RandomTable::new()
         .add("Goblin", 10)
@@ -388,4 +410,5 @@ fn room_table(map_depth: i32) -> RandomTable {
         .add("Tower Shield", map_depth - 1)
         .add("Magic Mapping Scroll", 2)
         .add("Rations", 10)
+        .add("Bear Trap", 3)
 }

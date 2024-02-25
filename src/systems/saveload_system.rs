@@ -87,7 +87,9 @@ pub fn save_game(ecs: &mut World) {
             WantsToRemoveItem,
             MagicMapper,
             HungerClock,
-            Food
+            Food,
+            EntryTrigger,
+            EntityMoved
         );
     }
 
@@ -177,7 +179,9 @@ pub fn load_game(ecs: &mut World) {
             WantsToRemoveItem,
             MagicMapper,
             HungerClock,
-            Food
+            Food,
+            EntryTrigger,
+            EntityMoved
         );
     }
 

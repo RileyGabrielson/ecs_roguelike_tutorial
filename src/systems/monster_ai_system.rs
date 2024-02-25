@@ -19,6 +19,7 @@ impl<'a> System<'a> for MonsterAI {
         ReadStorage<'a, components::Confusion>,
         ReadStorage<'a, components::Invisible>,
         WriteExpect<'a, particle_system::ParticleBuilder>,
+        WriteStorage<'a, components::EntityMoved>,
     );
 
     fn run(&mut self, data: Self::SystemData) {
@@ -35,6 +36,7 @@ impl<'a> System<'a> for MonsterAI {
             confused,
             invisible,
             mut particle_builder,
+            mut entities_moved,
         ) = data;
 
         if *run_state != RunState::MonsterTurn {
@@ -86,6 +88,10 @@ impl<'a> System<'a> for MonsterAI {
                         idx = map.xy_idx(pos.x, pos.y);
                         map.blocked[idx] = true;
                         viewshed.dirty = true;
+
+                        entities_moved
+                            .insert(entity, components::EntityMoved {})
+                            .expect("Could not insert entity moved");
                     }
                     try_target_player(&mut particle_builder, monster, pos.x, pos.y);
                 } else {
