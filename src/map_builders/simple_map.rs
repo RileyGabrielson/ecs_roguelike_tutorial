@@ -1,5 +1,5 @@
 use super::{common, MapBuilder};
-use crate::{components::Position, map::Map, spawner, Rect, TileType};
+use crate::{components::Position, map::Map, spawner, Rect, TileType, SHOW_MAPGEN_VISUALIZER};
 use rltk::RandomNumberGenerator;
 use specs::prelude::*;
 
@@ -8,6 +8,7 @@ pub struct SimpleMapBuilder {
     starting_position: Position,
     depth: i32,
     rooms: Vec<Rect>,
+    history: Vec<Map>,
 }
 
 impl SimpleMapBuilder {
@@ -17,6 +18,7 @@ impl SimpleMapBuilder {
             starting_position: Position { x: 0, y: 0 },
             depth: new_depth,
             rooms: Vec::new(),
+            history: Vec::new(),
         }
     }
 
@@ -40,6 +42,7 @@ impl SimpleMapBuilder {
                 }
             }
             if ok {
+                self.take_snapshot();
                 common::apply_room_to_map(&mut self.map, &new_room);
 
                 if !self.rooms.is_empty() {
@@ -55,6 +58,7 @@ impl SimpleMapBuilder {
                 }
 
                 self.rooms.push(new_room);
+                self.take_snapshot();
             }
         }
 
@@ -81,11 +85,25 @@ impl MapBuilder for SimpleMapBuilder {
         }
     }
 
-    fn get_map(&mut self) -> Map {
+    fn get_map(&self) -> Map {
         self.map.clone()
     }
 
-    fn get_starting_position(&mut self) -> Position {
+    fn get_starting_position(&self) -> Position {
         self.starting_position.clone()
+    }
+
+    fn get_snapshot_history(&self) -> Vec<Map> {
+        self.history.clone()
+    }
+
+    fn take_snapshot(&mut self) {
+        if SHOW_MAPGEN_VISUALIZER {
+            let mut snapshot = self.map.clone();
+            for v in snapshot.revealed_tiles.iter_mut() {
+                *v = true;
+            }
+            self.history.push(snapshot);
+        }
     }
 }
